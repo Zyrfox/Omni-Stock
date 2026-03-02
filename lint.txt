@@ -1,0 +1,32 @@
+
+> omni-stock@0.1.0 lint
+> eslint
+
+
+C:\Easy Going Group\inventory\OMNI_STOCK\src\app\actions\sync.ts
+   31:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   86:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  135:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Easy Going Group\inventory\OMNI_STOCK\src\app\actions\upload.ts
+  24:76  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  60:13  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  72:21  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+
+C:\Easy Going Group\inventory\OMNI_STOCK\src\app\po-logs\page.tsx
+  71:115  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Easy Going Group\inventory\OMNI_STOCK\src\components\dashboard\UploadDropzone.tsx
+   4:40  warning  'CheckCircle2' is defined but never used  @typescript-eslint/no-unused-vars
+   4:54  warning  'AlertCircle' is defined but never used   @typescript-eslint/no-unused-vars
+  71:18  warning  'error' is defined but never used         @typescript-eslint/no-unused-vars
+
+C:\Easy Going Group\inventory\OMNI_STOCK\src\components\po-logs\CopyPOButton.tsx
+  15:61  warning  'waNumber' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Easy Going Group\inventory\OMNI_STOCK\src\lib\evaluation-engine.ts
+  30:23  warning  'totalDeduction' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  43:23  warning  'isBelowMinimum' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+Γ£û 13 problems (7 errors, 6 warnings)
+

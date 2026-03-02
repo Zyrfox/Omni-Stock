@@ -1,0 +1,21 @@
+[dotenv@17.3.1] injecting env (4) from .env -- tip: ⚡️ secrets for agents: https://dotenvx.com/as2
+CSV_URL_VENDOR: https://docs.google.com/spreadsheets/d/e/2PACX-1vT_AF9i3elblALkCmcQhMNe-3_Ga77FTtON7yHtRVo2qhuDvEXK0HXwb6U0aHxYJY9_o9uAsYRhuGHe/pub?gid=1344613807&single=true&output=csv
+Fetching: https://docs.google.com/spreadsheets/d/e/2PACX-1vT_AF9i3elblALkCmcQhMNe-3_Ga77FTtON7yHtRVo2qhuDvEXK0...
+Status: 200
+Response text start: id_vendor,nama_vendor,metode_bayar,kontak_wa
+---,KATEGORI PROTEIN & LAUK MENTAH
+Parsed rows: 29
+Fetching: https://docs.google.com/spreadsheets/d/e/2PACX-1vT_AF9i3elblALkCmcQhMNe-3_Ga77FTtON7yHtRVo2qhuDvEXK0...
+Status: 200
+Response text start: id_bahan,nama_bahan,satuan_dasar,stok_saat_ini,id_vendor
+---,KATEGORI PROTEIN &
+Parsed rows: 36
+Fetching: https://docs.google.com/spreadsheets/d/e/2PACX-1vT_AF9i3elblALkCmcQhMNe-3_Ga77FTtON7yHtRVo2qhuDvEXK0...
+Status: 200
+Response text start: id_menu,nama_menu,kategori,tipe_item,station,status_aktif
+---,MAKANAN & RICEBOW
+Parsed rows: 112
+Fetching: https://docs.google.com/spreadsheets/d/e/2PACX-1vT_AF9i3elblALkCmcQhMNe-3_Ga77FTtON7yHtRVo2qhuDvEXK0...
+Status: 200
+Response text start: nama_menu (Sesuai Pawoon),nama_bahan (Sesuai Master),qty_kurang,satuan_bahan,sta
+Parsed rows: 20
