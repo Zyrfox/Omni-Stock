@@ -51,11 +51,15 @@ export async function syncMasterData(urls?: SyncUrls) {
 
         // 2. Clear existing (Order is CRITICAL for SQLite Foreign Keys)
         const { logPO } = await import('@/db/schema');
-        await db.delete(logPO).execute();
-        await db.delete(mappingResep).execute();
-        await db.delete(masterMenu).execute();
-        await db.delete(masterBahan).execute();
-        await db.delete(masterVendor).execute();
+        try {
+            await db.delete(logPO);
+            await db.delete(mappingResep);
+            await db.delete(masterMenu);
+            await db.delete(masterBahan);
+            await db.delete(masterVendor);
+        } catch (deleteErr) {
+            console.warn('[Sync] Delete phase warning:', deleteErr);
+        }
 
         // 3. Batch Insert Vendors
         const vendorInserts = vendorRows
@@ -141,7 +145,7 @@ export async function syncMasterData(urls?: SyncUrls) {
 
         // 7. Seed inventory state for new bahan items
         const existingStates = await db.select().from(inventoryState);
-        const existingBahanIds = new Set(existingStates.map((s: any) => s.id_bahan));
+        const existingBahanIds = new Set(existingStates.map(s => s.id_bahan));
 
         const newBahanForState = bahanInserts
             .filter(b => !existingBahanIds.has(b.id));
@@ -152,6 +156,7 @@ export async function syncMasterData(urls?: SyncUrls) {
                     id: crypto.randomUUID(),
                     id_bahan: b.id,
                     current_stock: 0,
+                    last_updated: new Date(),
                 }))
             );
         }
@@ -169,11 +174,11 @@ async function mockSyncMasterData() {
     try {
         // 1. Clear existing for mock sync
         const { logPO } = await import('@/db/schema');
-        await db.delete(logPO).execute();
-        await db.delete(mappingResep).execute();
-        await db.delete(masterMenu).execute();
-        await db.delete(masterBahan).execute();
-        await db.delete(masterVendor).execute();
+        await db.delete(logPO);
+        await db.delete(mappingResep);
+        await db.delete(masterMenu);
+        await db.delete(masterBahan);
+        await db.delete(masterVendor);
 
         // 2. Insert Vendors
         const vendorId1 = `v_${Date.now()}_1`;

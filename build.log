@@ -1,0 +1,57 @@
+Γû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env
+
+  Creating an optimized production build ...
+Γ£ô Compiled successfully in 3.3s
+  Running TypeScript ...
+  Collecting page data using 11 workers ...
+  Generating static pages using 11 workers (0/30) ...
+  Generating static pages using 11 workers (7/30) 
+  Generating static pages using 11 workers (14/30) 
+  Generating static pages using 11 workers (22/30) 
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+Γ£ô Generating static pages using 11 workers (30/30) in 521.5ms
+  Finalizing page optimization ...
+
+Route (app)
+Γöî Γùï /
+Γö£ Γùï /_not-found
+Γö£ ╞Æ /api/dashboard/kpi
+Γö£ ╞Æ /api/dashboard/order-summary
+Γö£ ╞Æ /api/dashboard/profit
+Γö£ ╞Æ /api/dashboard/recent-activity
+Γö£ ╞Æ /api/dashboard/traffic-source
+Γö£ ╞Æ /api/export-db
+Γö£ ╞Æ /api/inventory/manage
+Γö£ ╞Æ /api/inventory/restock-prediction
+Γö£ ╞Æ /api/inventory/smart-stock
+Γö£ ╞Æ /api/inventory/status
+Γö£ ╞Æ /api/po-logs
+Γö£ ╞Æ /api/sales/auto-email
+Γö£ ╞Æ /api/sales/upload
+Γö£ ╞Æ /api/settings
+Γö£ ╞Æ /api/sync/trigger
+Γö£ Γùï /billing
+Γö£ Γùï /category
+Γö£ Γùï /delivery
+Γö£ Γùï /help
+Γö£ Γùï /master-data
+Γö£ Γùï /orders
+Γö£ Γùï /po-logs
+Γö£ Γùï /products
+Γö£ Γùï /report
+Γö£ Γùï /settings
+Γö£ Γùï /stores
+Γöö Γùï /suppliers
+
+
+Γùï  (Static)   prerendered as static content
+╞Æ  (Dynamic)  server-rendered on demand
+
