@@ -5,7 +5,7 @@ import { simpleParser } from 'mailparser';
 import * as xlsx from 'xlsx';
 import { processSalesData } from '@/lib/engine';
 
-export async function POST(req: Request) {
+export function POST(req: Request): Promise<NextResponse> {
     const imapConfig = {
         user: process.env.IMAP_USER || '',
         password: process.env.IMAP_PASSWORD || '',

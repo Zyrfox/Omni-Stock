@@ -111,6 +111,24 @@ export async function syncMasterData() {
             await db.insert(mappingResep).values(resepInserts).onConflictDoNothing();
         }
 
+        // 7. Seed inventory state for new bahan items
+        const { inventoryState } = await import('@/db/schema');
+        const existingStates = await db.select().from(inventoryState);
+        const existingBahanIds = new Set(existingStates.map(s => s.id_bahan));
+
+        const newBahanForState = bahanRows
+            .filter(row => row[0] && !row[0].startsWith('---') && !existingBahanIds.has(row[0]));
+
+        if (newBahanForState.length > 0) {
+            await db.insert(inventoryState).values(
+                newBahanForState.map(row => ({
+                    id: crypto.randomUUID(),
+                    id_bahan: row[0],
+                    current_stock: 0,
+                }))
+            );
+        }
+
         return { success: true, message: 'Successfully synced master data from real Google Sheets.' };
     } catch (error: Error | unknown) {
         console.error("Sync error:", error);
