@@ -74,16 +74,18 @@ export function KPICards() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {kpiData.map((kpi, index) => (
                 <Card key={index} className="shadow-sm border-white/10 dark:border-white/5 transition-all duration-300 hover:shadow-md hover:-translate-y-1 overflow-hidden">
-                    <CardContent className="p-5">
-                        <div className="flex justify-between items-start gap-3">
-                            <div className="space-y-2 min-w-0">
-                                <p className="text-sm font-medium text-muted-foreground truncate">{kpi.title}</p>
-                                <h3 className="text-3xl font-bold tracking-tight">{kpi.value}</h3>
-                            </div>
-                            <div className={cn("p-2.5 rounded-xl shrink-0", kpi.bgClass)}>
-                                <kpi.icon className={cn("w-5 h-5", kpi.colorClass)} />
-                            </div>
+                    <CardContent className="relative p-5">
+                        {/* Icon — pinned top-right */}
+                        <div className={cn("absolute top-4 right-4 p-2.5 rounded-xl", kpi.bgClass)}>
+                            <kpi.icon className={cn("w-5 h-5", kpi.colorClass)} />
                         </div>
+
+                        {/* Text content — flows independently on the left */}
+                        <div className="space-y-2 pr-14">
+                            <p className="text-sm font-medium text-muted-foreground">{kpi.title}</p>
+                            <h3 className="text-3xl font-bold tracking-tight">{kpi.value}</h3>
+                        </div>
+
                         <div className="mt-4 flex items-center gap-1.5 text-sm">
                             <span className={cn("flex items-center font-medium", kpi.isPositive ? "text-emerald-500" : "text-destructive")}>
                                 {kpi.isPositive ? <TrendingUp className="w-4 h-4 mr-1" /> : <TrendingDown className="w-4 h-4 mr-1" />}
