@@ -12,14 +12,23 @@ export async function syncMasterData() {
         const resepUrl = process.env.CSV_URL_RESEP;
 
         if (!vendorUrl || !bahanUrl || !menuUrl) {
-            console.warn("CSV_URL missing in .env. Falling back to mock data.");
-            return mockSyncMasterData();
+            console.error("[Sync] CSV_URL_VENDOR, CSV_URL_BAHAN, or CSV_URL_MENU not set in environment variables!");
+            return {
+                success: false,
+                error: 'Environment variables belum di-set! Tambahkan CSV_URL_VENDOR, CSV_URL_BAHAN, CSV_URL_MENU, CSV_URL_RESEP di Vercel Dashboard → Settings → Environment Variables.'
+            };
         }
+
+        const fetchWithTimeout = (url: string, timeoutMs = 15000) => {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+            return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(timeoutId));
+        };
 
         const fetchAndParseCSV = async (url: string | undefined) => {
             if (!url) return [];
-            const res = await fetch(url);
-            if (!res.ok) throw new Error(`Failed to fetch CSV from ${url}`);
+            const res = await fetchWithTimeout(url);
+            if (!res.ok) throw new Error(`Failed to fetch CSV (HTTP ${res.status})`);
             const text = await res.text();
             const result = Papa.parse(text, { header: false, skipEmptyLines: true });
             return result.data.slice(1) as string[][]; // skip header row
