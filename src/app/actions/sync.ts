@@ -1,24 +1,23 @@
 'use server'
 
 import { db } from '@/db'
-import { masterVendor, masterBahan, masterMenu, mappingResep, inventoryState, appSettings } from '@/db/schema'
+import { masterVendor, masterBahan, masterMenu, mappingResep, inventoryState } from '@/db/schema'
 import Papa from 'papaparse'
-import { eq } from 'drizzle-orm'
 
-async function getSetting(key: string): Promise<string | null> {
-    try {
-        const rows = await db.select().from(appSettings).where(eq(appSettings.key, key));
-        return rows.length > 0 && rows[0].value ? rows[0].value : null;
-    } catch { return null; }
+interface SyncUrls {
+    CSV_URL_VENDOR?: string;
+    CSV_URL_BAHAN?: string;
+    CSV_URL_MENU?: string;
+    CSV_URL_RESEP?: string;
 }
 
-export async function syncMasterData() {
+export async function syncMasterData(urls?: SyncUrls) {
     try {
-        // Read from DB settings first, fallback to env vars
-        const vendorUrl = await getSetting('CSV_URL_VENDOR') || process.env.CSV_URL_VENDOR;
-        const bahanUrl = await getSetting('CSV_URL_BAHAN') || process.env.CSV_URL_BAHAN;
-        const menuUrl = await getSetting('CSV_URL_MENU') || process.env.CSV_URL_MENU;
-        const resepUrl = await getSetting('CSV_URL_RESEP') || process.env.CSV_URL_RESEP;
+        // Use provided URLs first, fallback to env vars
+        const vendorUrl = urls?.CSV_URL_VENDOR || process.env.CSV_URL_VENDOR;
+        const bahanUrl = urls?.CSV_URL_BAHAN || process.env.CSV_URL_BAHAN;
+        const menuUrl = urls?.CSV_URL_MENU || process.env.CSV_URL_MENU;
+        const resepUrl = urls?.CSV_URL_RESEP || process.env.CSV_URL_RESEP;
 
         if (!vendorUrl || !bahanUrl || !menuUrl) {
             return {

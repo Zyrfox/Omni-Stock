@@ -14,64 +14,55 @@ const CSV_KEYS = [
     { key: 'CSV_URL_RESEP', label: 'Mapping Resep', placeholder: 'https://docs.google.com/spreadsheets/d/e/.../pub?gid=...&output=csv' },
 ];
 
+const STORAGE_KEY = 'omni_stock_csv_urls';
+
+function loadUrls(): Record<string, string> {
+    if (typeof window === 'undefined') return {};
+    try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        return stored ? JSON.parse(stored) : {};
+    } catch { return {}; }
+}
+
+function saveUrls(urls: Record<string, string>) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(urls));
+}
+
 export default function SettingsPage() {
     const [isSyncing, setIsSyncing] = useState(false)
-    const [isSaving, setIsSaving] = useState(false)
     const [csvUrls, setCsvUrls] = useState<Record<string, string>>({})
     const [saved, setSaved] = useState(false)
 
-    // Load saved settings on mount
     useEffect(() => {
-        async function loadSettings() {
-            try {
-                const res = await fetch('/api/settings')
-                if (res.ok) {
-                    const data = await res.json()
-                    setCsvUrls(data)
-                }
-            } catch (e) {
-                console.error("Failed to load settings", e)
-            }
-        }
-        loadSettings()
+        setCsvUrls(loadUrls());
     }, [])
 
-    const handleSaveUrls = async () => {
-        setIsSaving(true)
-        setSaved(false)
-        try {
-            const res = await fetch('/api/settings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ settings: csvUrls }),
-            })
-            const data = await res.json()
-            if (data.success) {
-                toast.success("CSV URLs Saved!", { description: "Link Google Sheets berhasil disimpan." })
-                setSaved(true)
-                setTimeout(() => setSaved(false), 3000)
-            } else {
-                toast.error("Save Failed", { description: data.error })
-            }
-        } catch {
-            toast.error("Save Failed", { description: "Network error" })
-        } finally {
-            setIsSaving(false)
-        }
+    const handleSaveUrls = () => {
+        saveUrls(csvUrls);
+        setSaved(true);
+        toast.success("CSV URLs Saved!", { description: "Link tersimpan di browser." });
+        setTimeout(() => setSaved(false), 3000);
     }
 
     const handleSync = async () => {
-        setIsSyncing(true)
-        const result = await syncMasterData()
-        setIsSyncing(false)
-        if (result.success) {
-            toast.success("Sync Successful", { description: result.message })
-        } else {
-            toast.error("Sync Failed", { description: result.error })
+        // Save first, then sync with URLs passed directly
+        saveUrls(csvUrls);
+        setIsSyncing(true);
+        try {
+            const result = await syncMasterData(csvUrls);
+            if (result.success) {
+                toast.success("Sync Successful", { description: result.message });
+            } else {
+                toast.error("Sync Failed", { description: result.error });
+            }
+        } catch (err) {
+            toast.error("Sync Error", { description: "Terjadi error saat sync. Cek console untuk detail." });
+        } finally {
+            setIsSyncing(false);
         }
     }
 
-    const filledCount = CSV_KEYS.filter(c => csvUrls[c.key]?.trim()).length
+    const filledCount = CSV_KEYS.filter(c => csvUrls[c.key]?.trim()).length;
 
     return (
         <div className="flex flex-col gap-6">
@@ -112,9 +103,9 @@ export default function SettingsPage() {
                     ))}
 
                     <div className="flex items-center gap-3 pt-2">
-                        <Button onClick={handleSaveUrls} disabled={isSaving} className="flex items-center gap-2">
-                            <Save className={`h-4 w-4 ${isSaving ? "animate-spin" : ""}`} />
-                            {isSaving ? "Saving..." : "Save CSV Links"}
+                        <Button onClick={handleSaveUrls} className="flex items-center gap-2">
+                            <Save className="h-4 w-4" />
+                            Save CSV Links
                         </Button>
                         <span className="text-xs text-slate-500">
                             {filledCount}/4 links configured
@@ -129,11 +120,10 @@ export default function SettingsPage() {
             </Card>
 
             <div className="grid gap-6 md:grid-cols-2">
-                {/* Sync Card */}
                 <Card>
                     <CardHeader>
                         <CardTitle>Master Data Sync</CardTitle>
-                        <CardDescription>Sync data dari Google Sheets CSV ke database lokal. Pastikan CSV links sudah di-save di atas.</CardDescription>
+                        <CardDescription>Sync data dari Google Sheets CSV ke database. Pastikan CSV links sudah di-isi di atas.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <Button className="flex items-center gap-2" onClick={handleSync} disabled={isSyncing || filledCount < 3}>
@@ -146,7 +136,6 @@ export default function SettingsPage() {
                     </CardContent>
                 </Card>
 
-                {/* Export Card */}
                 <Card>
                     <CardHeader>
                         <CardTitle>Database Export</CardTitle>
