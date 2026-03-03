@@ -141,7 +141,7 @@ export async function syncMasterData(urls?: SyncUrls) {
 
         // 7. Seed inventory state for new bahan items
         const existingStates = await db.select().from(inventoryState);
-        const existingBahanIds = new Set(existingStates.map(s => s.id_bahan));
+        const existingBahanIds = new Set(existingStates.map((s: any) => s.id_bahan));
 
         const newBahanForState = bahanInserts
             .filter(b => !existingBahanIds.has(b.id));

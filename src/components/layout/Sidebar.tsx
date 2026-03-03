@@ -43,7 +43,7 @@ const groups = [
             { name: "Category", href: "/category", icon: Tags },
             { name: "Suppliers", href: "/suppliers", icon: Truck },
             { name: "Billing", href: "/billing", icon: Receipt },
-            { name: "Orders", href: "/orders", icon: ShoppingCart },
+            { name: "Upload History", href: "/orders", icon: ShoppingCart },
             { name: "Draft PO", href: "/po-logs", icon: ClipboardList },
             { name: "Delivery", href: "/delivery", icon: MapPin },
             { name: "Report", href: "/report", icon: BarChart },

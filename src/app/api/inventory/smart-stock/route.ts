@@ -4,12 +4,23 @@ import { inventoryState, masterBahan, masterVendor } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { fetchMasterData } from '@/lib/gsheets';
 
+interface StockRow {
+    id_bahan: string;
+    current_stock: number;
+    last_updated: Date | null;
+    nama_bahan: string | null;
+    satuan_dasar: string | null;
+    batas_minimum: number | null;
+    vendor_id: string | null;
+    vendor_nama: string | null;
+}
+
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
     try {
         // 1. Ambil semua stok dari INVENTORY_STATE (join ke MASTER_BAHAN & MASTER_VENDOR)
-        const stockData = await db
+        const stockData: StockRow[] = await db
             .select({
                 id_bahan: inventoryState.id_bahan,
                 current_stock: inventoryState.current_stock,

@@ -25,7 +25,7 @@ export async function GET() {
 
         for (const sale of recentSales) {
             // Find resep entries for this menu
-            const relatedReseps = allResep.filter(r => r.menu_id === sale.id_menu);
+            const relatedReseps = allResep.filter((r: any) => r.menu_id === sale.id_menu);
             for (const res of relatedReseps) {
                 const bahanId = res.bahan_id;
                 const usage = res.jumlah_pakai * sale.qty_sold;
@@ -42,7 +42,7 @@ export async function GET() {
         const allStock = await db.select().from(inventoryState);
 
         for (const stock of allStock) {
-            const bahanMeta = allBahan.find(b => b.id === stock.id_bahan);
+            const bahanMeta = allBahan.find((b: any) => b.id === stock.id_bahan);
             if (!bahanMeta) continue;
 
             // Skip consignment items
