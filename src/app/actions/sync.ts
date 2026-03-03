@@ -1,7 +1,7 @@
 'use server'
 
 import { db } from '@/db'
-import { masterVendor, masterBahan, masterMenu, mappingResep } from '@/db/schema'
+import { masterVendor, masterBahan, masterMenu, mappingResep, inventoryState } from '@/db/schema'
 import Papa from 'papaparse'
 
 export async function syncMasterData() {
@@ -16,15 +16,6 @@ export async function syncMasterData() {
             return mockSyncMasterData();
         }
 
-        // 1. Clear existing (Order is CRITICAL for SQLite Foreign Keys)
-        // Since LOG_PO depends on Bahan & Vendor, we must wipe it too if we are rebuilding masters
-        const { logPO } = await import('@/db/schema');
-        await db.delete(logPO).execute();
-        await db.delete(mappingResep).execute();
-        await db.delete(masterMenu).execute();
-        await db.delete(masterBahan).execute();
-        await db.delete(masterVendor).execute();
-
         const fetchAndParseCSV = async (url: string | undefined) => {
             if (!url) return [];
             const res = await fetch(url);
@@ -34,102 +25,123 @@ export async function syncMasterData() {
             return result.data.slice(1) as string[][]; // skip header row
         };
 
-        // 2. Fetch from Public CSVs
-        const vendorRows = await fetchAndParseCSV(vendorUrl);
-        const bahanRows = await fetchAndParseCSV(bahanUrl);
-        const menuRows = await fetchAndParseCSV(menuUrl);
-        const resepRows = await fetchAndParseCSV(resepUrl);
+        // 1. Fetch ALL CSVs in PARALLEL for speed
+        const [vendorRows, bahanRows, menuRows, resepRows] = await Promise.all([
+            fetchAndParseCSV(vendorUrl),
+            fetchAndParseCSV(bahanUrl),
+            fetchAndParseCSV(menuUrl),
+            fetchAndParseCSV(resepUrl),
+        ]);
 
-        // 3. Insert Vendors
-        for (const row of vendorRows) {
-            if (!row[0] || row[0].startsWith('---')) continue;
-            await db.insert(masterVendor).values({
+        // 2. Clear existing (Order is CRITICAL for SQLite Foreign Keys)
+        const { logPO } = await import('@/db/schema');
+        await db.delete(logPO).execute();
+        await db.delete(mappingResep).execute();
+        await db.delete(masterMenu).execute();
+        await db.delete(masterBahan).execute();
+        await db.delete(masterVendor).execute();
+
+        // 3. Batch Insert Vendors
+        const vendorInserts = vendorRows
+            .filter(row => row[0] && !row[0].startsWith('---'))
+            .map(row => ({
                 id: row[0],
                 nama_vendor: row[1] || 'Unknown',
                 kontak_wa: String(row[3] || '').replace(/[^0-9]/g, ''),
-            }).onConflictDoNothing();
+            }));
+
+        if (vendorInserts.length > 0) {
+            await db.insert(masterVendor).values(vendorInserts).onConflictDoNothing();
         }
 
+        // 4. Batch Insert Bahan
         const bahanMap = new Map<string, string>();
-        // 4. Insert Bahan
-        for (const row of bahanRows) {
-            if (!row[0] || row[0].startsWith('---')) continue;
-            const bahanId = row[0];
-            const bahanNama = String(row[1] || '').trim();
-            bahanMap.set(bahanNama, bahanId);
+        const bahanInserts = bahanRows
+            .filter(row => row[0] && !row[0].startsWith('---'))
+            .map(row => {
+                const bahanId = row[0];
+                const bahanNama = String(row[1] || '').trim();
+                bahanMap.set(bahanNama, bahanId);
+                return {
+                    id: bahanId,
+                    nama_bahan: bahanNama,
+                    satuan_dasar: row[2] || 'Pcs',
+                    batas_minimum: parseFloat(row[3]) || 10,
+                    vendor_id: (row[6] && row[6].trim() !== '' && row[6] !== '---' && row[6] !== '-') ? row[6].trim() : null,
+                    kategori_khusus: '',
+                };
+            });
 
-            await db.insert(masterBahan).values({
-                id: bahanId,
-                nama_bahan: bahanNama,
-                satuan_dasar: row[2] || 'Pcs',
-                batas_minimum: parseFloat(row[3]) || 10,
-                // CSV columns: id_bahan(0), nama_bahan(1), satuan_dasar(2), Minimal_Stock(3), Harga_Beli(4), Satuan_Beli(5), id_vendor(6)
-                vendor_id: (row[6] && row[6].trim() !== '' && row[6] !== '---' && row[6] !== '-') ? row[6].trim() : null,
-                kategori_khusus: '',
-            }).onConflictDoNothing();
+        if (bahanInserts.length > 0) {
+            await db.insert(masterBahan).values(bahanInserts).onConflictDoNothing();
         }
 
+        // 5. Batch Insert Menu
         const menuMap = new Map<string, string>();
-        // 5. Insert Menu
-        for (const row of menuRows) {
-            if (!row[0] || row[0].startsWith('---')) continue;
-            const menuId = row[0];
-            const menuNama = String(row[1] || '').trim();
-            menuMap.set(menuNama, menuId);
+        const menuInserts = menuRows
+            .filter(row => row[0] && !row[0].startsWith('---'))
+            .map(row => {
+                const menuId = row[0];
+                const menuNama = String(row[1] || '').trim();
+                menuMap.set(menuNama, menuId);
+                return {
+                    id: menuId,
+                    nama_menu: menuNama,
+                    outlet_id: 'O-001',
+                };
+            });
 
-            await db.insert(masterMenu).values({
-                id: menuId,
-                nama_menu: menuNama,
-                outlet_id: 'O-001',
-            }).onConflictDoNothing();
+        if (menuInserts.length > 0) {
+            await db.insert(masterMenu).values(menuInserts).onConflictDoNothing();
         }
 
-        // 6. Insert Resep Mapping
-        const resepInserts = [];
-        for (const row of resepRows) {
-            if (!row[0] || row[0].startsWith('---')) continue;
-            const menuNama = String(row[0]).trim();
-            const bahanNama = String(row[1]).trim();
+        // 6. Batch Insert Resep Mapping
+        const resepInserts = resepRows
+            .filter(row => row[0] && !row[0].startsWith('---'))
+            .map(row => {
+                const menuNama = String(row[0]).trim();
+                const bahanNama = String(row[1]).trim();
+                const menuId = menuMap.get(menuNama);
+                const bahanId = bahanMap.get(bahanNama);
 
-            const menuId = menuMap.get(menuNama);
-            const bahanId = bahanMap.get(bahanNama);
-
-            if (menuId && bahanId) {
-                resepInserts.push({
-                    id: `r_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-                    menu_id: menuId,
-                    bahan_id: bahanId,
-                    jumlah_pakai: parseFloat(row[2]) || 0,
-                    station: row[4] || 'Bar',
-                });
-            } else {
-                console.warn(`[Sync Warning] Failed finding match for Recipe: ${menuNama} -> M:${!!menuId} B:${!!bahanId}. Skipping to prevent FK error.`);
-            }
-        }
+                if (menuId && bahanId) {
+                    return {
+                        id: `r_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+                        menu_id: menuId,
+                        bahan_id: bahanId,
+                        jumlah_pakai: parseFloat(row[2]) || 0,
+                        station: row[4] || 'Bar',
+                    };
+                } else {
+                    console.warn(`[Sync Warning] Failed finding match for Recipe: ${menuNama} -> M:${!!menuId} B:${!!bahanId}. Skipping.`);
+                    return null;
+                }
+            })
+            .filter(Boolean) as { id: string; menu_id: string; bahan_id: string; jumlah_pakai: number; station: string }[];
 
         if (resepInserts.length > 0) {
             await db.insert(mappingResep).values(resepInserts).onConflictDoNothing();
         }
 
         // 7. Seed inventory state for new bahan items
-        const { inventoryState } = await import('@/db/schema');
         const existingStates = await db.select().from(inventoryState);
         const existingBahanIds = new Set(existingStates.map(s => s.id_bahan));
 
-        const newBahanForState = bahanRows
-            .filter(row => row[0] && !row[0].startsWith('---') && !existingBahanIds.has(row[0]));
+        const newBahanForState = bahanInserts
+            .filter(b => !existingBahanIds.has(b.id));
 
         if (newBahanForState.length > 0) {
             await db.insert(inventoryState).values(
-                newBahanForState.map(row => ({
+                newBahanForState.map(b => ({
                     id: crypto.randomUUID(),
-                    id_bahan: row[0],
+                    id_bahan: b.id,
                     current_stock: 0,
                 }))
             );
         }
 
-        return { success: true, message: 'Successfully synced master data from real Google Sheets.' };
+        console.log(`[Sync] Done: ${vendorInserts.length} vendors, ${bahanInserts.length} bahan, ${menuInserts.length} menu, ${resepInserts.length} resep, ${newBahanForState.length} new inventory states`);
+        return { success: true, message: `Synced: ${vendorInserts.length} vendor, ${bahanInserts.length} bahan, ${menuInserts.length} menu, ${resepInserts.length} resep.` };
     } catch (error: Error | unknown) {
         console.error("Sync error:", error);
         return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
