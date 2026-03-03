@@ -1,21 +1,29 @@
 'use server'
 
 import { db } from '@/db'
-import { masterVendor, masterBahan, masterMenu, mappingResep, inventoryState } from '@/db/schema'
+import { masterVendor, masterBahan, masterMenu, mappingResep, inventoryState, appSettings } from '@/db/schema'
 import Papa from 'papaparse'
+import { eq } from 'drizzle-orm'
+
+async function getSetting(key: string): Promise<string | null> {
+    try {
+        const rows = await db.select().from(appSettings).where(eq(appSettings.key, key));
+        return rows.length > 0 && rows[0].value ? rows[0].value : null;
+    } catch { return null; }
+}
 
 export async function syncMasterData() {
     try {
-        const vendorUrl = process.env.CSV_URL_VENDOR;
-        const bahanUrl = process.env.CSV_URL_BAHAN;
-        const menuUrl = process.env.CSV_URL_MENU;
-        const resepUrl = process.env.CSV_URL_RESEP;
+        // Read from DB settings first, fallback to env vars
+        const vendorUrl = await getSetting('CSV_URL_VENDOR') || process.env.CSV_URL_VENDOR;
+        const bahanUrl = await getSetting('CSV_URL_BAHAN') || process.env.CSV_URL_BAHAN;
+        const menuUrl = await getSetting('CSV_URL_MENU') || process.env.CSV_URL_MENU;
+        const resepUrl = await getSetting('CSV_URL_RESEP') || process.env.CSV_URL_RESEP;
 
         if (!vendorUrl || !bahanUrl || !menuUrl) {
-            console.error("[Sync] CSV_URL_VENDOR, CSV_URL_BAHAN, or CSV_URL_MENU not set in environment variables!");
             return {
                 success: false,
-                error: 'Environment variables belum di-set! Tambahkan CSV_URL_VENDOR, CSV_URL_BAHAN, CSV_URL_MENU, CSV_URL_RESEP di Vercel Dashboard → Settings → Environment Variables.'
+                error: 'CSV URL belum di-set! Masukkan link CSV Google Sheets di halaman Settings terlebih dahulu.'
             };
         }
 

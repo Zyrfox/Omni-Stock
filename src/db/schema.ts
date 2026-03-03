@@ -78,3 +78,8 @@ export const activityLog = sqliteTable("ACTIVITY_LOG", {
     user: text("user").notNull(),
     action: text("action").notNull(),
 });
+
+export const appSettings = sqliteTable("APP_SETTINGS", {
+    key: text("key").primaryKey(),
+    value: text("value").notNull(),
+});
