@@ -16,7 +16,10 @@ export async function syncMasterData() {
             return mockSyncMasterData();
         }
 
-        // 1. Clear existing
+        // 1. Clear existing (Order is CRITICAL for SQLite Foreign Keys)
+        // Since LOG_PO depends on Bahan & Vendor, we must wipe it too if we are rebuilding masters
+        const { logPO } = await import('@/db/schema');
+        await db.delete(logPO).execute();
         await db.delete(mappingResep).execute();
         await db.delete(masterMenu).execute();
         await db.delete(masterBahan).execute();
@@ -59,8 +62,9 @@ export async function syncMasterData() {
                 id: bahanId,
                 nama_bahan: bahanNama,
                 satuan_dasar: row[2] || 'Pcs',
-                batas_minimum: 10, // Default minimum, CSV omits this
-                vendor_id: (row[4] && row[4] !== '---' && row[4] !== '-') ? row[4] : null,
+                batas_minimum: parseFloat(row[3]) || 10,
+                // CSV columns: id_bahan(0), nama_bahan(1), satuan_dasar(2), Minimal_Stock(3), Harga_Beli(4), Satuan_Beli(5), id_vendor(6)
+                vendor_id: (row[6] && row[6].trim() !== '' && row[6] !== '---' && row[6] !== '-') ? row[6].trim() : null,
                 kategori_khusus: '',
             }).onConflictDoNothing();
         }
@@ -99,7 +103,7 @@ export async function syncMasterData() {
                     station: row[4] || 'Bar',
                 });
             } else {
-                console.warn(`[Sync Warning] Failed finding match for Recipe: ${menuNama} -> M:${!!menuId} B:${!!bahanId}`);
+                console.warn(`[Sync Warning] Failed finding match for Recipe: ${menuNama} -> M:${!!menuId} B:${!!bahanId}. Skipping to prevent FK error.`);
             }
         }
 
@@ -118,6 +122,8 @@ export async function syncMasterData() {
 async function mockSyncMasterData() {
     try {
         // 1. Clear existing for mock sync
+        const { logPO } = await import('@/db/schema');
+        await db.delete(logPO).execute();
         await db.delete(mappingResep).execute();
         await db.delete(masterMenu).execute();
         await db.delete(masterBahan).execute();

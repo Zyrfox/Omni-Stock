@@ -53,3 +53,28 @@ export const logPO = sqliteTable("LOG_PO", {
     status: text("status").notNull(), // 'draft' / 'approved'
     tanggal_po: integer("tanggal_po", { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`),
 });
+
+export const inventoryState = sqliteTable("INVENTORY_STATE", {
+    id: text("id").primaryKey(),
+    id_bahan: text("id_bahan").notNull(), // Links to GSheets Master Bahan ID
+    current_stock: real("current_stock").notNull(),
+    last_updated: integer("last_updated", { mode: 'timestamp' }).notNull().default(sql`(strftime('%s', 'now'))`),
+});
+
+export const salesHistory = sqliteTable("SALES_HISTORY", {
+    id: text("id").primaryKey(),
+    date: integer("date", { mode: 'timestamp' }).notNull(),
+    id_menu: text("id_menu").notNull(), // Links to GSheets Master Menu ID
+    qty_sold: integer("qty_sold").notNull(),
+    revenue: real("revenue").notNull(),
+    cogs: real("cogs").notNull(),
+    gross_profit: real("gross_profit").notNull(),
+    traffic_source: text("traffic_source"), // Added for dashboard logic
+});
+
+export const activityLog = sqliteTable("ACTIVITY_LOG", {
+    id: text("id").primaryKey(),
+    timestamp: integer("timestamp", { mode: 'timestamp' }).notNull().default(sql`(strftime('%s', 'now'))`),
+    user: text("user").notNull(),
+    action: text("action").notNull(),
+});
