@@ -23,6 +23,13 @@ export async function processSalesData(items: KartuStokRow[], user = "System", o
     if (!masterData) throw new Error("Gagal mengambil Master Data dari Google Sheets.");
 
     const { bahan } = masterData;
+    // Debug: log first bahan to check actual field names from GSheets CSV
+    if (bahan.length > 0) {
+        console.log("[ENGINE DEBUG] First bahan record keys:", Object.keys(bahan[0]));
+        console.log("[ENGINE DEBUG] First bahan values:", JSON.stringify(bahan[0]));
+    } else {
+        console.error("[ENGINE DEBUG] BAHAN ARRAY IS EMPTY - CSV_URL_BAHAN env var may be missing!");
+    }
 
     // ── 2. Create upload batch ────────────────────────────────────────────────
     const batchId = crypto.randomUUID();
@@ -52,7 +59,7 @@ export async function processSalesData(items: KartuStokRow[], user = "System", o
         matchedCount++;
         const id_bahan = matchedBahan.id_bahan;
         const newStock = item.stok_akhir;
-        const minStock = parseFloat(matchedBahan.Minimal_Stock || "0");
+        const minStock = parseFloat(matchedBahan.minimal_stock || matchedBahan.Minimal_Stock || "0");
 
         batchDetails.push({ id: crypto.randomUUID(), batch_id: batchId, nama_bahan_raw: item.nama_bahan, is_matched: true });
         inventoryUpdates.push({ id_bahan, current_stock: newStock });

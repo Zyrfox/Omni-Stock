@@ -21,8 +21,17 @@ async function fetchCSV(url: string) {
         const response = await fetch(url);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const csvContent = await response.text();
+        // Check if response is HTML (indicates error page)
+        if (csvContent.trim().startsWith('<')) {
+            console.error(`[CSV] Expected CSV but got HTML from ${url.substring(0, 80)}...`);
+            return [];
+        }
         const records = parse(csvContent, { columns: true, skip_empty_lines: true });
-        return records;
+        // Filter out separator rows (Google Sheets exports a "---" row after headers)
+        return records.filter((r: any) => {
+            const vals = Object.values(r) as string[];
+            return !vals.every(v => String(v).trim() === '---' || String(v).trim() === '');
+        });
     } catch (error) {
         console.error(`Error fetching CSV from ${url}:`, error);
         return [];
