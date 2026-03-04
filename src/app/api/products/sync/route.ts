@@ -43,7 +43,7 @@ export async function POST(req: Request) {
             }
         });
 
-        // 2. Insert into Mapping_Resep
+        // 2. Insert into Master_Resep
         if (resep && resep.length > 0) {
             const resepValues = resep.map((r: any, i: number) => [
                 `rsp_${idMenu}_${i}`,
@@ -55,7 +55,7 @@ export async function POST(req: Request) {
 
             await sheets.spreadsheets.values.append({
                 spreadsheetId,
-                range: 'Mapping_Resep!A:E',
+                range: 'Master_Resep!A:E',
                 valueInputOption: 'USER_ENTERED',
                 requestBody: {
                     values: resepValues

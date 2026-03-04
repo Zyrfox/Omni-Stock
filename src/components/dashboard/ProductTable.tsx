@@ -134,19 +134,19 @@ export function ProductTable() {
                     </div>
                 </CardHeader>
                 <CardContent className="p-0 sm:p-6 sm:pt-0">
-                    <div className="rounded-md border border-border overflow-x-auto">
+                    <div className="w-full overflow-x-auto rounded-md border border-border">
                         <Table>
                             <TableHeader className="bg-secondary/30">
                                 <TableRow>
-                                    <TableHead className="w-[40px]">#</TableHead>
-                                    <TableHead>ID Bahan</TableHead>
-                                    <TableHead>Nama Bahan</TableHead>
-                                    <TableHead className="text-right">Stok Saat Ini</TableHead>
-                                    <TableHead className="text-right">Min. Stok</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Vendor</TableHead>
-                                    <TableHead className="text-right">Prediksi PO</TableHead>
-                                    <TableHead className="w-[90px] text-center">Aksi</TableHead>
+                                    <TableHead className="w-[40px] whitespace-nowrap">#</TableHead>
+                                    <TableHead className="whitespace-nowrap">ID Bahan</TableHead>
+                                    <TableHead className="whitespace-nowrap">Nama Bahan</TableHead>
+                                    <TableHead className="text-right whitespace-nowrap">Stok Saat Ini</TableHead>
+                                    <TableHead className="text-right whitespace-nowrap">Min. Stok</TableHead>
+                                    <TableHead className="whitespace-nowrap">Status</TableHead>
+                                    <TableHead className="whitespace-nowrap">Vendor</TableHead>
+                                    <TableHead className="text-right whitespace-nowrap">Prediksi PO</TableHead>
+                                    <TableHead className="w-[90px] text-center whitespace-nowrap">Aksi</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -157,16 +157,16 @@ export function ProductTable() {
                                 ) : (
                                     paginatedProducts.map((p, index) => (
                                         <TableRow key={`${p.id_bahan}-${startIndex + index}`} className="hover:bg-secondary/20 transition-colors">
-                                            <TableCell className="text-muted-foreground">{startIndex + index + 1}</TableCell>
-                                            <TableCell className="font-mono text-xs">{p.id_bahan}</TableCell>
-                                            <TableCell className="font-medium">{p.nama_bahan}</TableCell>
-                                            <TableCell className={`text-right font-bold ${p.stock_status === 'out' ? 'text-destructive' : p.stock_status === 'low' ? 'text-amber-500' : ''}`}>
+                                            <TableCell className="text-muted-foreground whitespace-nowrap">{startIndex + index + 1}</TableCell>
+                                            <TableCell className="font-mono text-xs whitespace-nowrap">{p.id_bahan}</TableCell>
+                                            <TableCell className="font-medium whitespace-nowrap">{p.nama_bahan}</TableCell>
+                                            <TableCell className={`text-right font-bold whitespace-nowrap ${p.stock_status === 'out' ? 'text-destructive' : p.stock_status === 'low' ? 'text-amber-500' : ''}`}>
                                                 {p.current_stock.toFixed(2)} <span className="text-xs text-muted-foreground font-normal">{p.satuan}</span>
                                             </TableCell>
-                                            <TableCell className="text-right text-muted-foreground">{p.batas_minimum.toFixed(0)}</TableCell>
-                                            <TableCell>{statusBadge(p.stock_status)}</TableCell>
-                                            <TableCell className="text-sm">{p.vendor_nama}</TableCell>
-                                            <TableCell className="text-right">
+                                            <TableCell className="text-right text-muted-foreground whitespace-nowrap">{p.batas_minimum.toFixed(0)}</TableCell>
+                                            <TableCell className="whitespace-nowrap">{statusBadge(p.stock_status)}</TableCell>
+                                            <TableCell className="text-sm whitespace-nowrap">{p.vendor_nama}</TableCell>
+                                            <TableCell className="text-right whitespace-nowrap">
                                                 {p.needs_restock ? (
                                                     <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 font-semibold text-sm">
                                                         <ShoppingCart className="h-3.5 w-3.5" />
@@ -176,7 +176,7 @@ export function ProductTable() {
                                                     <span className="text-muted-foreground text-xs">—</span>
                                                 )}
                                             </TableCell>
-                                            <TableCell>
+                                            <TableCell className="whitespace-nowrap">
                                                 <div className="flex items-center justify-center gap-1">
                                                     <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-blue-500" onClick={() => handleEditClick(p)} title="Edit Stok">
                                                         <Edit className="h-4 w-4" />

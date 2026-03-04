@@ -60,7 +60,7 @@ export default function SettingsPage() {
                         </div>
                         <div className="bg-muted/50 px-3 py-2 rounded-lg">
                             <span className="text-muted-foreground">Sheets Sync:</span>
-                            <p className="font-medium mt-0.5">Master_Vendor, Master_Bahan, Master_Menu, Mapping_Resep</p>
+                            <p className="font-medium mt-0.5">Master_Vendor, Master_Bahan, Master_Menu, Master_Resep</p>
                         </div>
                         <div className="bg-muted/50 px-3 py-2 rounded-lg">
                             <span className="text-muted-foreground">Auth Method:</span>

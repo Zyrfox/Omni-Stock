@@ -45,23 +45,23 @@ export default async function POLogsPage() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="min-w-[80px]">PO ID</TableHead>
-                                    <TableHead className="min-w-[120px]">Vendor</TableHead>
-                                    <TableHead className="min-w-[150px]">Bahan (Item)</TableHead>
-                                    <TableHead className="min-w-[180px]">Status</TableHead>
-                                    <TableHead className="text-right min-w-[100px]">Tanggal</TableHead>
+                                    <TableHead className="min-w-[80px] whitespace-nowrap">PO ID</TableHead>
+                                    <TableHead className="min-w-[120px] whitespace-nowrap">Vendor</TableHead>
+                                    <TableHead className="min-w-[150px] whitespace-nowrap">Bahan (Item)</TableHead>
+                                    <TableHead className="min-w-[180px] whitespace-nowrap">Status</TableHead>
+                                    <TableHead className="text-right min-w-[100px] whitespace-nowrap">Tanggal</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {logsData.map((log) => (
                                     <TableRow key={log.id}>
-                                        <TableCell className="font-mono text-xs">{log.id.slice(0, 8)}...</TableCell>
-                                        <TableCell>
+                                        <TableCell className="font-mono text-xs whitespace-nowrap">{log.id.slice(0, 8)}...</TableCell>
+                                        <TableCell className="whitespace-nowrap">
                                             {log.vendor_nama || '-'}
                                             {log.vendor_wa && <span className="block text-xs text-slate-400">{log.vendor_wa}</span>}
                                         </TableCell>
-                                        <TableCell>{log.bahan_nama || '-'}</TableCell>
-                                        <TableCell>
+                                        <TableCell className="whitespace-nowrap">{log.bahan_nama || '-'}</TableCell>
+                                        <TableCell className="whitespace-nowrap">
                                             {log.status === 'draft' ? (
                                                 <div className="flex items-center">
                                                     <Badge variant="outline" className="text-amber-600 bg-amber-50">Menunggu Approval Manager</Badge>
@@ -73,10 +73,13 @@ export default async function POLogsPage() {
                                                     <ApprovePOButton poId={log.id} />
                                                 </div>
                                             ) : (
-                                                <Badge variant="outline" className="text-green-600 bg-green-50 mt-1">Approved</Badge>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <Badge variant="outline" className="text-green-600 bg-green-50">Approved</Badge>
+                                                    <ApprovePOButton poId={log.id} isUndo={true} />
+                                                </div>
                                             )}
                                         </TableCell>
-                                        <TableCell className="text-right text-slate-500">
+                                        <TableCell className="text-right text-slate-500 whitespace-nowrap">
                                             {log.tanggal_po
                                                 ? new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(log.tanggal_po))
                                                 : '-'}

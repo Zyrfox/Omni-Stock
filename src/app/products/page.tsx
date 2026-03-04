@@ -66,7 +66,7 @@ export default async function ProductsPage() {
 
     return (
         <div className="flex flex-col gap-6">
-            <div className="flex justify-between items-start">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">Products</h2>
                     <p className="text-slate-500 dark:text-slate-400">Daftar menu POS beserta komposisi resep bahan baku.</p>
@@ -135,7 +135,7 @@ export default async function ProductsPage() {
             {/* Product Tables per Outlet */}
             <Card>
                 <CardHeader>
-                    <div className="flex justify-between items-center">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div>
                             <CardTitle>Menu & Resep</CardTitle>
                             <CardDescription>Data produk dikelompokkan per outlet. Pilih tab untuk melihat menu masing-masing outlet.</CardDescription>
@@ -158,14 +158,14 @@ export default async function ProductsPage() {
 
                             {outletEntries.map(entry => (
                                 <TabsContent key={entry.prefix} value={entry.prefix}>
-                                    <div className="overflow-x-auto">
+                                    <div className="w-full overflow-x-auto">
                                         <Table>
                                             <TableHeader>
                                                 <TableRow>
-                                                    <TableHead className="min-w-[100px]">ID</TableHead>
-                                                    <TableHead className="min-w-[200px]">Nama Menu</TableHead>
-                                                    <TableHead className="min-w-[100px]">Kategori</TableHead>
-                                                    <TableHead className="min-w-[300px]">Komposisi Resep</TableHead>
+                                                    <TableHead className="min-w-[100px] whitespace-nowrap">ID</TableHead>
+                                                    <TableHead className="min-w-[200px] whitespace-nowrap">Nama Menu</TableHead>
+                                                    <TableHead className="min-w-[100px] whitespace-nowrap">Kategori</TableHead>
+                                                    <TableHead className="min-w-[300px] whitespace-nowrap">Komposisi Resep</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
@@ -173,12 +173,12 @@ export default async function ProductsPage() {
                                                     const reseps = resepPerMenu.get(m.id) || [];
                                                     return (
                                                         <TableRow key={m.id}>
-                                                            <TableCell className="font-mono text-xs">{m.id}</TableCell>
-                                                            <TableCell className="font-medium">{m.nama_menu}</TableCell>
-                                                            <TableCell>
+                                                            <TableCell className="font-mono text-xs whitespace-nowrap">{m.id}</TableCell>
+                                                            <TableCell className="font-medium whitespace-nowrap">{m.nama_menu}</TableCell>
+                                                            <TableCell className="whitespace-nowrap">
                                                                 <Badge variant="outline">{m.outlet_id}</Badge>
                                                             </TableCell>
-                                                            <TableCell>
+                                                            <TableCell className="whitespace-nowrap">
                                                                 {reseps.length > 0 ? (
                                                                     <div className="flex flex-wrap gap-1.5">
                                                                         {reseps.map((r, i) => (

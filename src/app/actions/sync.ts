@@ -54,7 +54,7 @@ export async function syncMasterData() {
             fetchSheetData('Master_Vendor'),
             fetchSheetData('Master_Bahan'),
             fetchSheetData('Master_Menu'),
-            fetchSheetData('Mapping_Resep'),
+            fetchSheetData('Master_Resep'),
         ]);
         console.log('[Sync] Fetched rows:', { vendors: vendorRows.length, bahan: bahanRows.length, menu: menuRows.length, resep: resepRows.length });
 
