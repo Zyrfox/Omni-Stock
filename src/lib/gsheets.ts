@@ -11,9 +11,13 @@ let masterDataCache: {
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 Hour
 
 // Replace these URLs with the actual Public CSV links from Google Sheets
-const URL_MASTER_BAHAN = process.env.CSV_URL_BAHAN || "";
-const URL_MASTER_MENU = process.env.CSV_URL_MENU || "";
-const URL_MAPPING_RESEP = process.env.CSV_URL_RESEP || "";
+const FALLBACK_BAHAN = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_AF9i3elblALkCmcQhMNe-3_Ga77FTtON7yHtRVo2qhuDvEXK0HXwb6U0aHxYJY9_o9uAsYRhuGHe/pub?gid=1930484537&single=true&output=csv";
+const FALLBACK_MENU = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_AF9i3elblALkCmcQhMNe-3_Ga77FTtON7yHtRVo2qhuDvEXK0HXwb6U0aHxYJY9_o9uAsYRhuGHe/pub?gid=0&single=true&output=csv";
+const FALLBACK_RESEP = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_AF9i3elblALkCmcQhMNe-3_Ga77FTtON7yHtRVo2qhuDvEXK0HXwb6U0aHxYJY9_o9uAsYRhuGHe/pub?gid=1358887311&single=true&output=csv";
+
+const URL_MASTER_BAHAN = process.env.CSV_URL_BAHAN || FALLBACK_BAHAN;
+const URL_MASTER_MENU = process.env.CSV_URL_MENU || FALLBACK_MENU;
+const URL_MAPPING_RESEP = process.env.CSV_URL_RESEP || FALLBACK_RESEP;
 
 async function fetchCSV(url: string) {
     if (!url) return [];
