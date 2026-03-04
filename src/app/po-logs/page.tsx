@@ -6,6 +6,8 @@ import { logPO, masterBahan, masterVendor } from "@/db/schema"
 import { eq, desc } from "drizzle-orm"
 import { CopyPOButton } from "@/components/po-logs/CopyPOButton"
 import { ApprovePOButton } from "@/components/po-logs/ApprovePOButton"
+import { LastSyncedBadge } from "@/components/ui/LastSyncedBadge"
+import { Suspense } from "react"
 
 export default async function POLogsPage() {
     const logsData = await db
@@ -28,6 +30,10 @@ export default async function POLogsPage() {
                 <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">PO Logs</h2>
                 <p className="text-slate-500 dark:text-slate-400">History of Purchase Orders generated automatically based on minimum stock alerts.</p>
             </div>
+
+            <Suspense fallback={null}>
+                <LastSyncedBadge />
+            </Suspense>
 
             <Card>
                 <CardHeader>
@@ -70,7 +76,11 @@ export default async function POLogsPage() {
                                                 <Badge variant="outline" className="text-green-600 bg-green-50 mt-1">Approved</Badge>
                                             )}
                                         </TableCell>
-                                        <TableCell className="text-right text-slate-500">{new Date(Number(log.tanggal_po) * 1000).toLocaleDateString()}</TableCell>
+                                        <TableCell className="text-right text-slate-500">
+                                            {log.tanggal_po
+                                                ? new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(log.tanggal_po))
+                                                : '-'}
+                                        </TableCell>
                                     </TableRow>
                                 ))}
                                 {logsData.length === 0 && (

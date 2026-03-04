@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Package, CheckCircle2, AlertTriangle, XCircle, TrendingUp, TrendingDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 export function KPICards() {
     const [stats, setStats] = useState({
@@ -73,28 +74,44 @@ export function KPICards() {
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {kpiData.map((kpi, index) => (
-                <Card key={index} className="shadow-sm border-white/10 dark:border-white/5 transition-all duration-300 hover:shadow-md hover:-translate-y-1 overflow-hidden">
-                    <CardContent className="relative p-5">
-                        {/* Icon — pinned top-right */}
-                        <div className={cn("absolute top-4 right-4 p-2.5 rounded-xl", kpi.bgClass)}>
-                            <kpi.icon className={cn("w-5 h-5", kpi.colorClass)} />
-                        </div>
+                <motion.div
+                    key={index}
+                    whileHover="hover"
+                    initial="initial"
+                    className="h-full"
+                >
+                    <Card className="h-full shadow-sm border-white/10 dark:border-white/5 transition-all duration-300 hover:shadow-md hover:border-primary/20 overflow-hidden relative group">
+                        <CardContent className="p-5 flex flex-col justify-between h-full min-h-[140px] space-y-4">
+                            {/* Header Card: Label kiri, Icon kanan */}
+                            <div className="flex justify-between items-start w-full">
+                                <p className="text-sm font-medium text-gray-400">{kpi.title}</p>
+                                <motion.div
+                                    className={cn("p-2.5 rounded-xl flex items-center justify-center shrink-0", kpi.bgClass)}
+                                    variants={{
+                                        initial: { scale: 1, rotate: 0 },
+                                        hover: { scale: 1.05, rotate: [0, -5, 5, 0], transition: { duration: 0.3 } }
+                                    }}
+                                >
+                                    <kpi.icon className={cn("w-5 h-5", kpi.colorClass)} />
+                                </motion.div>
+                            </div>
 
-                        {/* Text content — flows independently on the left */}
-                        <div className="space-y-2 pr-14">
-                            <p className="text-sm font-medium text-muted-foreground">{kpi.title}</p>
-                            <h3 className="text-3xl font-bold tracking-tight">{kpi.value}</h3>
-                        </div>
+                            {/* Body Card: Angka Utama */}
+                            <div>
+                                <h3 className="text-3xl font-bold tracking-tight">{kpi.value}</h3>
+                            </div>
 
-                        <div className="mt-4 flex items-center gap-1.5 text-sm">
-                            <span className={cn("flex items-center font-medium", kpi.isPositive ? "text-emerald-500" : "text-destructive")}>
-                                {kpi.isPositive ? <TrendingUp className="w-4 h-4 mr-1" /> : <TrendingDown className="w-4 h-4 mr-1" />}
-                                {kpi.trend}
-                            </span>
-                            <span className="text-muted-foreground ml-1">vs last month</span>
-                        </div>
-                    </CardContent>
-                </Card>
+                            {/* Footer Card: Persentase trend sejajar vertikal di bawah angka */}
+                            <div className="flex flex-col text-xs space-y-1">
+                                <span className={cn("flex items-center font-medium", kpi.isPositive ? "text-emerald-500" : "text-destructive")}>
+                                    {kpi.isPositive ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
+                                    {kpi.trend}
+                                </span>
+                                <span className="text-gray-500">vs last month</span>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </motion.div>
             ))}
         </div>
     );

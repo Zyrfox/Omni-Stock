@@ -7,6 +7,8 @@ import { TrafficSource } from "@/components/dashboard/TrafficSource";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { ProductTable } from "@/components/dashboard/ProductTable";
 import { DropzoneUploader } from "@/components/dashboard/DropzoneUploader";
+import { LastSyncedBadge } from "@/components/ui/LastSyncedBadge";
+import { Suspense } from "react";
 
 export default function Dashboard() {
   return (
@@ -26,6 +28,9 @@ export default function Dashboard() {
           <UpcomingRestock />
         </div>
 
+        <Suspense fallback={null}>
+          <LastSyncedBadge />
+        </Suspense>
         <ProductTable />
       </div>
 

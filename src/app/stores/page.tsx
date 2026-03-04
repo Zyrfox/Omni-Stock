@@ -4,19 +4,21 @@ import { db } from "@/db"
 import { masterMenu, inventoryState, masterBahan } from "@/db/schema"
 import { Store, Package, AlertTriangle, ChevronRight } from "lucide-react"
 import Link from "next/link"
+import { resolveOutletName } from "@/lib/outlets"
 
 export default async function StoresPage() {
     const menus = await db.select().from(masterMenu);
     const allStock = await db.select().from(inventoryState);
     const allBahan = await db.select().from(masterBahan);
 
-    // Group menus by outlet
+    // Group menus by resolved outlet name (using shared config)
     const outletMap = new Map<string, { menuCount: number; menuNames: string[] }>();
     for (const m of menus) {
-        if (!outletMap.has(m.outlet_id)) {
-            outletMap.set(m.outlet_id, { menuCount: 0, menuNames: [] });
+        const outletName = resolveOutletName(m.id);
+        if (!outletMap.has(outletName)) {
+            outletMap.set(outletName, { menuCount: 0, menuNames: [] });
         }
-        const entry = outletMap.get(m.outlet_id)!;
+        const entry = outletMap.get(outletName)!;
         entry.menuCount++;
         if (entry.menuNames.length < 3) {
             entry.menuNames.push(m.nama_menu);
@@ -89,7 +91,7 @@ export default async function StoresPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {outlets.map(o => (
                         <Link key={o.id} href={`/stores/${encodeURIComponent(o.id)}`}>
-                            <Card className="group hover:border-indigo-400 hover:shadow-lg hover:shadow-indigo-500/10 transition-all duration-200 cursor-pointer h-full">
+                            <Card className="group cursor-pointer transition-all duration-200 hover:-translate-y-1 hover:shadow-lg hover:border-lime-500/50 h-full">
                                 <CardContent className="pt-6 flex flex-col gap-4 h-full">
                                     {/* Header */}
                                     <div className="flex items-start justify-between">
@@ -102,7 +104,7 @@ export default async function StoresPage() {
                                                 <p className="text-xs text-slate-500">Outlet</p>
                                             </div>
                                         </div>
-                                        <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all" />
+                                        <ChevronRight className="h-5 w-5 text-slate-400 opacity-0 group-hover:opacity-100 group-hover:text-lime-500 group-hover:translate-x-0.5 transition-all" />
                                     </div>
 
                                     {/* Stats */}

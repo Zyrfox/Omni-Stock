@@ -1,66 +1,101 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LineChart, Line, ResponsiveContainer, YAxis } from "recharts";
+import { useTheme } from "next-themes";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from "recharts";
 
 export function TrafficSource() {
-    const [trafficSources, setTrafficSources] = useState<any[]>([]);
+    // Keeping the original name for backward compatibility in imports, but changing rendering context
+    const [movementData, setMovementData] = useState<any[]>([]);
+    const { resolvedTheme } = useTheme();
+    const tickColor = resolvedTheme === 'dark' ? '#9CA3AF' : '#4B5563';
 
     useEffect(() => {
-        async function fetchTraffic() {
+        async function fetchStockMovement() {
             try {
-                const res = await fetch("/api/dashboard/traffic-source");
+                const res = await fetch("/api/dashboard/stock-movement");
                 if (res.ok) {
                     const data = await res.json();
-                    setTrafficSources(data);
+                    setMovementData(data);
                 }
             } catch (error) {
-                console.error("Failed to fetch traffic sources", error);
+                console.error("Failed to fetch stock movement", error);
             }
         }
-        fetchTraffic();
+        fetchStockMovement();
     }, []);
 
     return (
-        <Card className="h-full border-white/10 dark:border-white/5">
-            <CardHeader>
-                <CardTitle className="text-lg">Traffic Source</CardTitle>
+        <Card className="col-span-1 lg:col-span-2 shadow-sm border-white/10 dark:border-white/5 h-full">
+            <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Stock Movement Summary</CardTitle>
+                <CardDescription>Pergerakan stok harian: Masuk, Keluar, dan Penyesuaian.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-                {trafficSources.length === 0 && (
-                    <p className="text-sm text-muted-foreground">No traffic data.</p>
-                )}
-                {trafficSources.map((source, index) => (
-                    <div key={index} className="flex items-center justify-between">
-                        <div className="space-y-1 w-24">
-                            <p className="text-sm font-semibold">{source.name}</p>
-                            <div className="flex items-baseline gap-2">
-                                <span className="text-lg font-bold">{source.total}</span>
-                            </div>
+            <CardContent>
+                <div className="h-[280px] w-full mt-4">
+                    {movementData.length === 0 ? (
+                        <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
+                            Memuat data pergerakan stok...
                         </div>
-
-                        <div className="h-10 flex-1 px-4">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={source.data}>
-                                    <YAxis domain={['dataMin - 10', 'dataMax + 10']} hide />
-                                    <Line
-                                        type="monotone"
-                                        dataKey="value"
-                                        stroke={source.color}
-                                        strokeWidth={2}
-                                        dot={false}
-                                        isAnimationActive={false}
-                                    />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </div>
-
-                        <div className={`text-xs font-medium ${source.trend?.startsWith('+') ? 'text-emerald-500' : 'text-amber-500'} w-12 text-right`}>
-                            {source.trend || ""}
-                        </div>
-                    </div>
-                ))}
+                    ) : (
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={movementData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                                <XAxis
+                                    dataKey="date"
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tick={{ fontSize: 12, fill: tickColor }}
+                                    dy={10}
+                                />
+                                <YAxis
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tick={{ fontSize: 12, fill: tickColor }}
+                                />
+                                <Tooltip
+                                    contentStyle={{ borderRadius: '8px', border: '1px solid hsl(var(--border))', backgroundColor: 'hsl(var(--card))' }}
+                                    itemStyle={{ fontSize: '12px' }}
+                                    labelStyle={{ fontSize: '13px', fontWeight: 'bold', color: 'hsl(var(--foreground))', marginBottom: '4px' }}
+                                />
+                                <Legend
+                                    verticalAlign="top"
+                                    height={36}
+                                    wrapperStyle={{ fontSize: '12px', paddingTop: '4px' }}
+                                    iconType="circle"
+                                />
+                                <Line
+                                    name="Stok Masuk"
+                                    type="monotone"
+                                    dataKey="masuk"
+                                    stroke="#10b981" // emerald-500
+                                    strokeWidth={3}
+                                    dot={false}
+                                    activeDot={{ r: 6 }}
+                                />
+                                <Line
+                                    name="Stok Keluar"
+                                    type="monotone"
+                                    dataKey="keluar"
+                                    stroke="#ef4444" // red-500
+                                    strokeWidth={3}
+                                    dot={false}
+                                    activeDot={{ r: 6 }}
+                                />
+                                <Line
+                                    name="Penyesuaian"
+                                    type="monotone"
+                                    dataKey="penyesuaian"
+                                    stroke="#eab308" // yellow-500
+                                    strokeWidth={3}
+                                    dot={false}
+                                    activeDot={{ r: 6 }}
+                                    strokeDasharray="5 5"
+                                />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    )}
+                </div>
             </CardContent>
         </Card>
     );

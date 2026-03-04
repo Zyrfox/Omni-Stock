@@ -79,6 +79,15 @@ export const activityLog = sqliteTable("ACTIVITY_LOG", {
     action: text("action").notNull(),
 });
 
+export const stockMovement = sqliteTable("STOCK_MOVEMENT", {
+    id: text("id").primaryKey(),
+    date: integer("date", { mode: 'timestamp' }).notNull(),
+    id_bahan: text("id_bahan").notNull(),
+    stok_masuk: real("stok_masuk").notNull().default(0),
+    stok_keluar: real("stok_keluar").notNull().default(0),
+    stok_penyesuaian: real("stok_penyesuaian").notNull().default(0),
+});
+
 export const appSettings = sqliteTable("APP_SETTINGS", {
     key: text("key").primaryKey(),
     value: text("value").notNull(),
