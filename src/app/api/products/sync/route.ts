@@ -1,37 +1,26 @@
 import { NextResponse } from "next/server";
 import { google } from "googleapis";
-import path from "path";
-import fs from "fs";
 
 export async function POST(req: Request) {
     try {
         const payload = await req.json();
         const { menu, resep } = payload;
 
-        let keyFile = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-
-        // Fallback to the user-provided path if it exists locally
-        const fallbackPath = path.join(process.cwd(), "Credential", "media-project-backend-72ecb4975ad7.json");
-        if (!keyFile && fs.existsSync(fallbackPath)) {
-            keyFile = fallbackPath;
-        }
-
-        // Ensure service account details are available
-        // We gracefully mock the logic if creds are not found anywhere
-        if (!keyFile && !process.env.GOOGLE_SHEETS_CLIENT_EMAIL) {
+        if (!process.env.GOOGLE_SHEETS_CLIENT_EMAIL || !process.env.GOOGLE_SHEETS_PRIVATE_KEY) {
             console.warn("[GSheets] Credentials not found. Mocking successful insert.");
-            // Normally we would insert into SQLite immediately, 
-            // but we mock that standard flow as per PRD "API akan menentukan tujuan row"
             return NextResponse.json({ success: true, mocked: true });
         }
 
         const auth = new google.auth.GoogleAuth({
-            scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-            keyFile,
-            credentials: (!keyFile && process.env.GOOGLE_SHEETS_PRIVATE_KEY) ? {
+            credentials: {
                 client_email: process.env.GOOGLE_SHEETS_CLIENT_EMAIL,
                 private_key: process.env.GOOGLE_SHEETS_PRIVATE_KEY.replace(/\\n/g, '\n'),
-            } : undefined
+            },
+            scopes: [
+                'https://www.googleapis.com/auth/drive',
+                'https://www.googleapis.com/auth/drive.file',
+                'https://www.googleapis.com/auth/spreadsheets',
+            ],
         });
 
         const sheets = google.sheets({ version: 'v4', auth });
@@ -41,21 +30,20 @@ export async function POST(req: Request) {
             throw new Error("Missing GOOGLE_SHEETS_ID in environment variables");
         }
 
-        // 1. Insert into Master_Menu
-        // Columns assumed: ID, Nama Menu, Outlet (adjust as per actual sheet structure)
-        const idMenu = `menu_${Date.now()}`;
+        // Use the auto-generated ID from the modal, fallback to timestamp
+        const idMenu = menu.id || `menu_${Date.now()}`;
 
+        // 1. Insert into Master_Menu
         await sheets.spreadsheets.values.append({
             spreadsheetId,
-            range: 'Master_Menu!A:C',
+            range: 'Master_Menu!A:D',
             valueInputOption: 'USER_ENTERED',
             requestBody: {
-                values: [[idMenu, menu.nama_menu, menu.outlet_id]]
+                values: [[idMenu, menu.nama_menu, menu.outlet_id, menu.kategori]]
             }
         });
 
         // 2. Insert into Mapping_Resep
-        // Columns assumed: ID Resep, Menu_ID, Bahan_ID, Qty, Satuan
         if (resep && resep.length > 0) {
             const resepValues = resep.map((r: any, i: number) => [
                 `rsp_${idMenu}_${i}`,
@@ -81,3 +69,4 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
+
