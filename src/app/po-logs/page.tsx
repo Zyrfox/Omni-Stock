@@ -2,33 +2,24 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { db } from "@/db"
-import { logPO, masterBahan, masterVendor } from "@/db/schema"
-import { eq, desc } from "drizzle-orm"
-import { CopyPOButton } from "@/components/po-logs/CopyPOButton"
-import { ApprovePOButton } from "@/components/po-logs/ApprovePOButton"
+import { invoices, invoiceItems } from "@/db/schema"
+import { desc, eq } from "drizzle-orm"
+import { InvoiceActions } from "@/components/po-logs/InvoiceActions"
 import { LastSyncedBadge } from "@/components/ui/LastSyncedBadge"
 import { Suspense } from "react"
 
 export default async function POLogsPage() {
-    const logsData = await db
-        .select({
-            id: logPO.id,
-            status: logPO.status,
-            tanggal_po: logPO.tanggal_po,
-            bahan_nama: masterBahan.nama_bahan,
-            vendor_nama: masterVendor.nama_vendor,
-            vendor_wa: masterVendor.kontak_wa
-        })
-        .from(logPO)
-        .leftJoin(masterBahan, eq(logPO.bahan_id, masterBahan.id))
-        .leftJoin(masterVendor, eq(logPO.vendor_id, masterVendor.id))
-        .orderBy(desc(logPO.tanggal_po));
+    // Fetch all generated invoices
+    const allInvoices = await db.select().from(invoices).orderBy(desc(invoices.created_at));
+
+    // Fetch all invoice items (in a real app with large data, we'd paginate or fetch on-demand)
+    const allItems = await db.select().from(invoiceItems);
 
     return (
         <div className="flex flex-col gap-6">
             <div>
-                <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">PO Logs</h2>
-                <p className="text-slate-500 dark:text-slate-400">History of Purchase Orders generated automatically based on minimum stock alerts.</p>
+                <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">PO Logs & Invoices</h2>
+                <p className="text-slate-500 dark:text-slate-400">Arsip permanen Purchase Orders yang telah di-Approve dan digenerate menjadi Invoice.</p>
             </div>
 
             <Suspense fallback={null}>
@@ -37,57 +28,53 @@ export default async function POLogsPage() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Recent Purchase Orders</CardTitle>
-                    <CardDescription>All automaticly drafted Purchase Orders from inventory deduction.</CardDescription>
+                    <CardTitle>Approved Invoice Vault</CardTitle>
+                    <CardDescription>Daftar invoice berdasarkan vendor yang telah disetujui.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="overflow-x-auto">
+                    <div className="w-full overflow-x-auto">
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="min-w-[80px] whitespace-nowrap">PO ID</TableHead>
-                                    <TableHead className="min-w-[120px] whitespace-nowrap">Vendor</TableHead>
-                                    <TableHead className="min-w-[150px] whitespace-nowrap">Bahan (Item)</TableHead>
-                                    <TableHead className="min-w-[180px] whitespace-nowrap">Status</TableHead>
-                                    <TableHead className="text-right min-w-[100px] whitespace-nowrap">Tanggal</TableHead>
+                                    <TableHead className="min-w-[120px] whitespace-nowrap">Invoice ID</TableHead>
+                                    <TableHead className="min-w-[150px] whitespace-nowrap">Tanggal Dibuat</TableHead>
+                                    <TableHead className="min-w-[150px] whitespace-nowrap">Vendor</TableHead>
+                                    <TableHead className="text-center min-w-[100px] whitespace-nowrap">Total Item</TableHead>
+                                    <TableHead className="text-right min-w-[150px] whitespace-nowrap">Total Biaya (Rp)</TableHead>
+                                    <TableHead className="min-w-[120px] whitespace-nowrap">Status</TableHead>
+                                    <TableHead className="min-w-[180px] text-right whitespace-nowrap">Action</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {logsData.map((log) => (
-                                    <TableRow key={log.id}>
-                                        <TableCell className="font-mono text-xs whitespace-nowrap">{log.id.slice(0, 8)}...</TableCell>
-                                        <TableCell className="whitespace-nowrap">
-                                            {log.vendor_nama || '-'}
-                                            {log.vendor_wa && <span className="block text-xs text-slate-400">{log.vendor_wa}</span>}
-                                        </TableCell>
-                                        <TableCell className="whitespace-nowrap">{log.bahan_nama || '-'}</TableCell>
-                                        <TableCell className="whitespace-nowrap">
-                                            {log.status === 'draft' ? (
-                                                <div className="flex items-center">
-                                                    <Badge variant="outline" className="text-amber-600 bg-amber-50">Menunggu Approval Manager</Badge>
-                                                    <CopyPOButton
-                                                        poId={log.id}
-                                                        bahanName={log.bahan_nama || 'Unknown'}
-                                                        vendorName={log.vendor_nama || 'Unknown'}
-                                                    />
-                                                    <ApprovePOButton poId={log.id} />
-                                                </div>
-                                            ) : (
-                                                <div className="flex items-center gap-2 mt-1">
-                                                    <Badge variant="outline" className="text-green-600 bg-green-50">Approved</Badge>
-                                                    <ApprovePOButton poId={log.id} isUndo={true} />
-                                                </div>
-                                            )}
-                                        </TableCell>
-                                        <TableCell className="text-right text-slate-500 whitespace-nowrap">
-                                            {log.tanggal_po
-                                                ? new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(log.tanggal_po))
-                                                : '-'}
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                                {logsData.length === 0 && (
-                                    <TableRow><TableCell colSpan={5} className="text-center text-slate-500 h-24">No Purchase Orders have been generated yet.</TableCell></TableRow>
+                                {allInvoices.map((inv) => {
+                                    const relatedItems = allItems.filter(item => item.invoice_id === inv.id);
+
+                                    return (
+                                        <TableRow key={inv.id}>
+                                            <TableCell className="font-mono text-xs whitespace-nowrap uppercase">{inv.id.split('-')[0]}</TableCell>
+                                            <TableCell className="whitespace-nowrap">
+                                                {inv.created_at
+                                                    ? new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(inv.created_at))
+                                                    : '-'}
+                                            </TableCell>
+                                            <TableCell className="font-semibold whitespace-nowrap">{inv.vendor_nama}</TableCell>
+                                            <TableCell className="text-center whitespace-nowrap">{inv.total_items} item</TableCell>
+                                            <TableCell className="text-right font-bold whitespace-nowrap text-amber-600 dark:text-amber-500">
+                                                Rp {inv.total_biaya.toLocaleString('id-ID')}
+                                            </TableCell>
+                                            <TableCell className="whitespace-nowrap">
+                                                <Badge variant="outline" className={inv.status === 'PAID' ? "text-emerald-600 bg-emerald-50 border-emerald-200" : "text-amber-600 bg-amber-50 border-amber-200"}>
+                                                    {inv.status}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="whitespace-nowrap text-right flex justify-end">
+                                                <InvoiceActions invoiceId={inv.id} vendorName={inv.vendor_nama} items={relatedItems} />
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })}
+                                {allInvoices.length === 0 && (
+                                    <TableRow><TableCell colSpan={7} className="text-center text-slate-500 h-24">Belum ada Invoice yang digenerate.</TableCell></TableRow>
                                 )}
                             </TableBody>
                         </Table>

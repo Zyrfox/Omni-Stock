@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Search, Edit, Trash2, Filter, ChevronLeft, ChevronRight, X, Save, AlertTriangle, ShoppingCart } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Search, Filter, ChevronLeft, ChevronRight, X, AlertTriangle, ShoppingCart, Check, Trash2, AlertCircle } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,6 +10,18 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { usePOBuilder } from "@/lib/store/usePOBuilder";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -20,9 +32,13 @@ interface SmartStockItem {
     current_stock: number;
     batas_minimum: number;
     vendor_nama: string;
+    vendor_id: string;
     stock_status: string;
     needs_restock: boolean;
-    suggested_order_qty: number;
+    suggested_order_qty?: number;
+    harga_satuan: number;
+    kontak_wa?: string;
+    info_pembayaran?: string;
 }
 
 export function ProductTable() {
@@ -30,13 +46,14 @@ export function ProductTable() {
     const [products, setProducts] = useState<SmartStockItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
-    const [editingProduct, setEditingProduct] = useState<SmartStockItem | null>(null);
-    const [editStock, setEditStock] = useState("");
-    const [deletingProduct, setDeletingProduct] = useState<SmartStockItem | null>(null);
+    const [draftPOProduct, setDraftPOProduct] = useState<SmartStockItem | null>(null);
+    const [draftQty, setDraftQty] = useState("");
+
+    const { addPO, approvedPOs, removePO } = usePOBuilder();
 
     async function fetchProducts() {
         try {
-            const res = await fetch("/api/inventory/smart-stock");
+            const res = await fetch("/api/inventory/po-workbench");
             if (res.ok) {
                 const data = await res.json();
                 setProducts(data);
@@ -48,41 +65,48 @@ export function ProductTable() {
         }
     }
 
+    const handleClearInventory = async () => {
+        const loadingToast = toast.loading("Membersihkan data inventori...");
+        try {
+            const res = await fetch("/api/inventory/clear", { method: "DELETE" });
+            const data = await res.json();
+
+            if (data.success) {
+                toast.success("Data inventori berhasil dikosongkan!", { id: loadingToast });
+                await fetchProducts(); // Reload empty table
+            } else {
+                toast.error("Gagal mengosongkan data", { description: data.error, id: loadingToast });
+            }
+        } catch (error: any) {
+            toast.error("Terjadi kesalahan jaringan", { id: loadingToast });
+        }
+    };
+
     useEffect(() => { fetchProducts(); }, []);
 
-    const handleEditClick = (product: SmartStockItem) => {
-        setEditingProduct(product);
-        setEditStock(String(product.current_stock));
+    const handleRancangClick = (product: SmartStockItem) => {
+        setDraftPOProduct(product);
+        const qtyToOrder = product.current_stock < product.batas_minimum
+            ? (product.batas_minimum - product.current_stock)
+            : 0;
+        setDraftQty(String(qtyToOrder > 0 ? qtyToOrder : 10));
     };
 
-    const handleEditSave = async () => {
-        if (!editingProduct) return;
-        try {
-            const res = await fetch("/api/inventory/manage", {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id_bahan: editingProduct.id_bahan, current_stock: parseFloat(editStock) }),
-            });
-            if (res.ok) {
-                toast.success("Stok Diperbarui", { description: `${editingProduct.nama_bahan} → ${editStock}` });
-                setEditingProduct(null);
-                await fetchProducts();
-            } else {
-                toast.error("Gagal memperbarui stok");
-            }
-        } catch { toast.error("Terjadi kesalahan"); }
-    };
+    const handleApprovePO = () => {
+        if (!draftPOProduct) return;
 
-    const handleDeleteConfirm = async () => {
-        if (!deletingProduct) return;
-        try {
-            const res = await fetch(`/api/inventory/manage?id_bahan=${encodeURIComponent(deletingProduct.id_bahan)}`, { method: "DELETE" });
-            if (res.ok) {
-                toast.success("Item Dihapus", { description: `${deletingProduct.nama_bahan} dihapus.` });
-                setDeletingProduct(null);
-                await fetchProducts();
-            } else { toast.error("Gagal menghapus"); }
-        } catch { toast.error("Terjadi kesalahan"); }
+        addPO({
+            id_bahan: draftPOProduct.id_bahan,
+            nama_bahan: draftPOProduct.nama_bahan,
+            qty: parseFloat(draftQty) || 1,
+            harga_satuan: draftPOProduct.harga_satuan,
+            vendor_id: draftPOProduct.vendor_id,
+            vendor_nama: draftPOProduct.vendor_nama,
+            info_pembayaran: draftPOProduct.info_pembayaran || null
+        });
+
+        toast.success("Dimasukkan ke Invoice", { description: `${draftPOProduct.nama_bahan} sejumlah ${draftQty} ${draftPOProduct.satuan}` });
+        setDraftPOProduct(null);
     };
 
     const filteredProducts = products.filter(p =>
@@ -123,14 +147,38 @@ export function ProductTable() {
                             {totalItems} item · <span className="text-amber-500 font-medium">{needsRestockCount} perlu restock</span>
                         </p>
                     </div>
-                    <div className="flex items-center gap-3 w-full sm:w-auto mt-3 sm:mt-0">
-                        <div className="relative flex-1 sm:w-64">
+                    <div className="flex items-center gap-3 w-full sm:w-auto mt-3 sm:mt-0 flex-wrap">
+                        <div className="relative flex-1 sm:w-64 min-w-[200px]">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input placeholder="Cari bahan..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9 bg-secondary/50 rounded-lg" />
                         </div>
-                        <Button variant="outline" className="border-border rounded-lg" size="icon">
-                            <Filter className="h-4 w-4" />
-                        </Button>
+
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive" className="rounded-lg gap-2 text-xs sm:text-sm">
+                                    <Trash2 className="h-4 w-4" /> <span className="hidden sm:inline">Kosongkan Data</span>
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+                                        <AlertCircle className="h-5 w-5" /> Konfirmasi Hapus Inventori
+                                    </AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        Tindakan ini akan menghapus <strong>seluruh data stok dari Kartu Stok terakhir</strong> berikut histori sinkronisasinya. Anda harus mengupload ulang Kartu Stok baru dari Pawoon.
+                                        <br /><br />
+                                        Lanjutkan?
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Batal</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleClearInventory} className="bg-destructive hover:bg-destructive/90 text-white">
+                                        Ya, Kosongkan
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+
                     </div>
                 </CardHeader>
                 <CardContent className="p-0 sm:p-6 sm:pt-0">
@@ -145,8 +193,8 @@ export function ProductTable() {
                                     <TableHead className="text-right whitespace-nowrap">Min. Stok</TableHead>
                                     <TableHead className="whitespace-nowrap">Status</TableHead>
                                     <TableHead className="whitespace-nowrap">Vendor</TableHead>
-                                    <TableHead className="text-right whitespace-nowrap">Prediksi PO</TableHead>
-                                    <TableHead className="w-[90px] text-center whitespace-nowrap">Aksi</TableHead>
+                                    <TableHead className="text-right whitespace-nowrap">Harga/Qty</TableHead>
+                                    <TableHead className="w-[120px] text-center whitespace-nowrap">Aksi</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -165,25 +213,31 @@ export function ProductTable() {
                                             </TableCell>
                                             <TableCell className="text-right text-muted-foreground whitespace-nowrap">{p.batas_minimum.toFixed(0)}</TableCell>
                                             <TableCell className="whitespace-nowrap">{statusBadge(p.stock_status)}</TableCell>
-                                            <TableCell className="text-sm whitespace-nowrap">{p.vendor_nama}</TableCell>
-                                            <TableCell className="text-right whitespace-nowrap">
-                                                {p.needs_restock ? (
-                                                    <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 font-semibold text-sm">
-                                                        <ShoppingCart className="h-3.5 w-3.5" />
-                                                        {p.suggested_order_qty} {p.satuan}
-                                                    </span>
+                                            <TableCell className="text-sm whitespace-nowrap pt-3 pb-3">
+                                                {p.kontak_wa ? (
+                                                    <a href={`https://wa.me/62${p.kontak_wa?.replace(/^0/, '')}`} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                                                        {p.vendor_nama}
+                                                    </a>
                                                 ) : (
-                                                    <span className="text-muted-foreground text-xs">—</span>
+                                                    <span>{p.vendor_nama}</span>
                                                 )}
+                                            </TableCell>
+                                            <TableCell className="text-right whitespace-nowrap text-sm text-muted-foreground">
+                                                Rp {(p.harga_satuan || 0).toLocaleString('id-ID')}
                                             </TableCell>
                                             <TableCell className="whitespace-nowrap">
                                                 <div className="flex items-center justify-center gap-1">
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-blue-500" onClick={() => handleEditClick(p)} title="Edit Stok">
-                                                        <Edit className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => setDeletingProduct(p)} title="Hapus">
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
+                                                    {approvedPOs.some(po => po.id_bahan === p.id_bahan) ? (
+                                                        <Button variant="outline" size="sm" className="h-8 gap-1 border-emerald-500/50 text-emerald-600 bg-emerald-500/10 hover:bg-emerald-500/20" onClick={() => removePO(p.id_bahan)} title="Batal PO">
+                                                            <Check className="h-3.5 w-3.5" />
+                                                            <span>Drafted</span>
+                                                        </Button>
+                                                    ) : (
+                                                        <Button variant="outline" size="sm" className="h-8 gap-1 hover:bg-lime-500 hover:text-black hover:border-lime-500" onClick={() => handleRancangClick(p)} title="Rancang PO">
+                                                            <ShoppingCart className="h-3.5 w-3.5" />
+                                                            <span>PO</span>
+                                                        </Button>
+                                                    )}
                                                 </div>
                                             </TableCell>
                                         </TableRow>
@@ -222,54 +276,63 @@ export function ProductTable() {
                         </div>
                     )}
                 </CardContent>
-            </Card>
+            </Card >
 
-            {/* EDIT MODAL */}
-            {editingProduct && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setEditingProduct(null)}>
-                    <div className="bg-background border border-border rounded-xl shadow-2xl w-full max-w-md p-6 space-y-5" onClick={e => e.stopPropagation()}>
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-semibold">Edit Stok Bahan</h3>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingProduct(null)}><X className="h-4 w-4" /></Button>
-                        </div>
-                        <div className="space-y-3">
-                            <div>
-                                <label className="text-sm text-muted-foreground">ID Bahan</label>
-                                <p className="font-mono text-sm font-medium">{editingProduct.id_bahan}</p>
+            {/* RANCANG PO MODAL */}
+            {
+                draftPOProduct && (
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 min-h-[100dvh]" onClick={() => setDraftPOProduct(null)}>
+                        <div className="bg-background border border-border rounded-xl shadow-2xl w-full max-w-md p-6 space-y-5" onClick={e => e.stopPropagation()}>
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-lg font-semibold flex items-center gap-2">
+                                    <ShoppingCart className="h-5 w-5 text-lime-500" />
+                                    Rancang PO Vendor
+                                </h3>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDraftPOProduct(null)}><X className="h-4 w-4" /></Button>
                             </div>
-                            <div>
-                                <label className="text-sm text-muted-foreground">Nama</label>
-                                <p className="font-medium">{editingProduct.nama_bahan}</p>
+                            <div className="space-y-4">
+                                <div className="bg-secondary/30 p-3 rounded-lg border border-border/50 text-sm">
+                                    <div className="grid grid-cols-2 gap-2 text-muted-foreground">
+                                        <span>Bahan:</span>
+                                        <span className="font-semibold text-foreground text-right">{draftPOProduct!.nama_bahan}</span>
+                                        <span>Vendor:</span>
+                                        <span className="font-semibold text-foreground text-right">{draftPOProduct!.vendor_nama}</span>
+                                        <span>Stok vs Min:</span>
+                                        <span className="font-semibold text-foreground text-right">{draftPOProduct!.current_stock.toFixed(1)} / {draftPOProduct!.batas_minimum}</span>
+                                        <span>Harga/Qty:</span>
+                                        <span className="font-semibold text-foreground text-right">Rp {(draftPOProduct!.harga_satuan || 0).toLocaleString('id-ID')}</span>
+                                    </div>
+                                </div>
+
+                                <div className="grid gap-3">
+                                    <div>
+                                        <label className="text-sm font-semibold block mb-1">Qty Order ({draftPOProduct!.satuan})</label>
+                                        <Input type="number" value={draftQty} onChange={e => setDraftQty(e.target.value)} step="0.01" className="bg-secondary/50 text-lg py-6" autoFocus />
+                                    </div>
+                                    <div className="bg-amber-500/10 border border-amber-500/20 p-3 rounded-lg">
+                                        <label className="text-xs text-amber-600 dark:text-amber-500 font-semibold uppercase tracking-wider block mb-1">Total Biaya (Estimasi)</label>
+                                        <p className="font-mono text-xl text-foreground font-bold">
+                                            Rp {((parseFloat(draftQty) || 0) * (draftPOProduct!.harga_satuan || 0)).toLocaleString('id-ID')}
+                                        </p>
+                                    </div>
+                                    {draftPOProduct!.info_pembayaran && (
+                                        <div className="bg-muted p-3 rounded-lg mt-2">
+                                            <label className="text-xs text-muted-foreground mb-1 block">Info Pembayaran Vendor:</label>
+                                            <p className="text-sm font-medium">{draftPOProduct!.info_pembayaran}</p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                            <div>
-                                <label className="text-sm text-muted-foreground block mb-1">Jumlah Stok ({editingProduct.satuan})</label>
-                                <Input type="number" value={editStock} onChange={e => setEditStock(e.target.value)} step="0.01" className="bg-secondary/50" autoFocus />
+                            <div className="flex gap-3 pt-2">
+                                <Button variant="outline" className="flex-1" onClick={() => setDraftPOProduct(null)}>Batal</Button>
+                                <Button className="flex-1 gap-2 bg-lime-500 text-black hover:bg-lime-600" onClick={handleApprovePO}>
+                                    <Check className="h-4 w-4" /> Approve & Masuk Invoice
+                                </Button>
                             </div>
-                        </div>
-                        <div className="flex gap-3 pt-2">
-                            <Button variant="outline" className="flex-1" onClick={() => setEditingProduct(null)}>Batal</Button>
-                            <Button className="flex-1 gap-2" onClick={handleEditSave}><Save className="h-4 w-4" />Simpan</Button>
                         </div>
                     </div>
-                </div>
-            )}
-
-            {/* DELETE MODAL */}
-            {deletingProduct && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setDeletingProduct(null)}>
-                    <div className="bg-background border border-border rounded-xl shadow-2xl w-full max-w-sm p-6 space-y-5" onClick={e => e.stopPropagation()}>
-                        <div className="flex flex-col items-center text-center gap-3">
-                            <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center"><AlertTriangle className="h-6 w-6 text-destructive" /></div>
-                            <h3 className="text-lg font-semibold">Hapus Item?</h3>
-                            <p className="text-sm text-muted-foreground">Yakin ingin menghapus <span className="font-semibold text-foreground">{deletingProduct.nama_bahan}</span>?</p>
-                        </div>
-                        <div className="flex gap-3">
-                            <Button variant="outline" className="flex-1" onClick={() => setDeletingProduct(null)}>Batal</Button>
-                            <Button variant="destructive" className="flex-1 gap-2" onClick={handleDeleteConfirm}><Trash2 className="h-4 w-4" />Hapus</Button>
-                        </div>
-                    </div>
-                </div>
-            )}
+                )
+            }
         </>
     );
 }

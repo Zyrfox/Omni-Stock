@@ -44,7 +44,7 @@ const groups = [
             { name: "Suppliers", href: "/suppliers", icon: Truck },
             { name: "Billing", href: "/billing", icon: Receipt },
             { name: "Upload History", href: "/orders", icon: ShoppingCart },
-            { name: "Draft PO", href: "/po-logs", icon: ClipboardList },
+            { name: "PO Logs", href: "/po-logs", icon: ClipboardList },
             { name: "Delivery", href: "/delivery", icon: MapPin },
             { name: "Report", href: "/report", icon: BarChart },
         ]

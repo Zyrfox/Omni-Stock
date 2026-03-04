@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
-import { inventoryState, salesHistory, masterBahan, masterMenu, mappingResep } from '@/db/schema';
-import { sql, gte, eq } from 'drizzle-orm';
+import { uploadBatches, inventoryLogs, salesHistory, masterBahan, masterMenu, mappingResep } from '@/db/schema';
+import { sql, gte, eq, desc } from 'drizzle-orm';
 
 export async function GET() {
     try {
@@ -39,7 +39,9 @@ export async function GET() {
 
         // 4. Compare with current stock and calculate Days Remaining
         const upcomingRestocks = [];
-        const allStock = await db.select().from(inventoryState);
+
+        const [latestBatch] = await db.select().from(uploadBatches).orderBy(desc(uploadBatches.created_at)).limit(1);
+        const allStock = latestBatch ? await db.select().from(inventoryLogs).where(eq(inventoryLogs.batch_id, latestBatch.id)) : [];
 
         for (const stock of allStock) {
             const bahanMeta = allBahan.find((b: any) => b.id === stock.id_bahan);

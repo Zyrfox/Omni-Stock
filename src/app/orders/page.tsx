@@ -2,36 +2,23 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { db } from "@/db"
-import { salesReports, salesReportDetails } from "@/db/schema"
-import { eq, desc, sql } from "drizzle-orm"
-import { FileSpreadsheet, CheckCircle2, AlertCircle, Upload } from "lucide-react"
+import { uploadBatches, uploadBatchDetails } from "@/db/schema"
+import { desc } from "drizzle-orm"
+import { CheckCircle2, AlertCircle, Upload } from "lucide-react"
+import { UploadDetailsModal } from "@/components/orders/UploadDetailsModal"
 
 export default async function OrdersPage() {
-    const reports = await db.select().from(salesReports).orderBy(desc(salesReports.waktu_upload));
+    const batches = await db.select().from(uploadBatches).orderBy(desc(uploadBatches.created_at));
+    const allDetails = await db.select().from(uploadBatchDetails);
 
-    // Get detail counts per report
-    const detailCounts: Record<string, { total: number; matched: number; unmatched: number }> = {};
-    const allDetails = await db.select().from(salesReportDetails);
-    for (const d of allDetails) {
-        if (!detailCounts[d.report_id]) {
-            detailCounts[d.report_id] = { total: 0, matched: 0, unmatched: 0 };
-        }
-        detailCounts[d.report_id].total++;
-        if (d.match_status === 'matched') {
-            detailCounts[d.report_id].matched++;
-        } else {
-            detailCounts[d.report_id].unmatched++;
-        }
-    }
-
-    const totalMatched = allDetails.filter(d => d.match_status === 'matched').length;
-    const totalUnmatched = allDetails.filter(d => d.match_status === 'unmatched').length;
+    const totalMatched = allDetails.filter(d => d.is_matched).length;
+    const totalUnmatched = allDetails.filter(d => !d.is_matched).length;
 
     return (
         <div className="flex flex-col gap-6">
             <div>
-                <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">Upload History</h2>
-                <p className="text-slate-500 dark:text-slate-400">Riwayat upload file .xls laporan penjualan beserta status parsing.</p>
+                <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">Upload History (Stock Tracker)</h2>
+                <p className="text-slate-500 dark:text-slate-400">Arsip riwayat upload Kartu Stok dari setiap Outlet beserta analisis kecocokan Master Data.</p>
             </div>
 
             {/* Summary */}
@@ -43,7 +30,7 @@ export default async function OrdersPage() {
                                 <Upload className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                             </div>
                             <div>
-                                <p className="text-2xl font-bold">{reports.length}</p>
+                                <p className="text-2xl font-bold">{batches.length}</p>
                                 <p className="text-xs text-slate-500">Total Upload</p>
                             </div>
                         </div>
@@ -80,63 +67,60 @@ export default async function OrdersPage() {
             {/* Reports Table */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Upload Reports</CardTitle>
-                    <CardDescription>Setiap file .xls yang diunggah akan diparse dan dicatat di sini beserta jumlah item yang berhasil dicocokkan.</CardDescription>
+                    <CardTitle>Physical Upload Logs</CardTitle>
+                    <CardDescription>Menampilkan kapan update master stock dilakukan pada gudang secara spesifik.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    {reports.length > 0 ? (
+                    {batches.length > 0 ? (
                         <div className="overflow-x-auto">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead className="min-w-[100px]">Report ID</TableHead>
-                                        <TableHead className="min-w-[200px]">Nama File</TableHead>
-                                        <TableHead className="min-w-[100px]">Outlet</TableHead>
+                                        <TableHead className="min-w-[100px]">Batch ID</TableHead>
+                                        <TableHead className="min-w-[140px]">Outlet</TableHead>
                                         <TableHead className="min-w-[100px]">Status</TableHead>
                                         <TableHead className="text-center min-w-[80px]">Matched</TableHead>
                                         <TableHead className="text-center min-w-[80px]">Unmatched</TableHead>
-                                        <TableHead className="text-right min-w-[140px]">Waktu Upload</TableHead>
+                                        <TableHead className="text-right min-w-[160px]">Waktu Upload</TableHead>
+                                        <TableHead className="text-right min-w-[120px]">Aksi</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {reports.map(r => {
-                                        const counts = detailCounts[r.id] || { total: 0, matched: 0, unmatched: 0 };
-                                        const uploadDate = r.waktu_upload
-                                            ? new Date(Number(r.waktu_upload) * 1000).toLocaleString('id-ID', {
+                                    {batches.map(b => {
+                                        const relatedDetails = allDetails.filter(d => d.batch_id === b.id);
+                                        const matchedCount = relatedDetails.filter(d => d.is_matched).length;
+                                        const unmatchedCount = relatedDetails.filter(d => !d.is_matched).length;
+
+                                        const uploadDate = b.created_at
+                                            ? new Date(b.created_at).toLocaleString('id-ID', {
                                                 day: '2-digit', month: 'short', year: 'numeric',
                                                 hour: '2-digit', minute: '2-digit'
                                             })
                                             : '-';
+
                                         return (
-                                            <TableRow key={r.id}>
-                                                <TableCell className="font-mono text-xs">{r.id.slice(0, 12)}...</TableCell>
+                                            <TableRow key={b.id}>
+                                                <TableCell className="font-mono text-xs select-all uppercase">{b.id.split('-')[0]}</TableCell>
                                                 <TableCell>
-                                                    <div className="flex items-center gap-2">
-                                                        <FileSpreadsheet className="h-4 w-4 text-emerald-600 shrink-0" />
-                                                        <span className="font-medium truncate max-w-[200px]">{r.file_name}</span>
-                                                    </div>
+                                                    <Badge variant="outline" className="bg-secondary/50 font-semibold">{b.outlet_id}</Badge>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Badge variant="outline">{r.outlet_id}</Badge>
-                                                </TableCell>
-                                                <TableCell>
-                                                    {r.upload_status === 'parsed' ? (
-                                                        <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 border-0">
-                                                            <CheckCircle2 className="h-3 w-3 mr-1" /> Parsed
-                                                        </Badge>
-                                                    ) : (
-                                                        <Badge variant="destructive">
-                                                            <AlertCircle className="h-3 w-3 mr-1" /> Failed
-                                                        </Badge>
-                                                    )}
+                                                    <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 border-0">
+                                                        <CheckCircle2 className="h-3 w-3 mr-1" /> Sukses
+                                                    </Badge>
                                                 </TableCell>
                                                 <TableCell className="text-center">
-                                                    <span className="text-emerald-600 font-medium">{counts.matched}</span>
+                                                    <span className="text-emerald-600 font-semibold">{matchedCount}</span>
                                                 </TableCell>
                                                 <TableCell className="text-center">
-                                                    <span className={counts.unmatched > 0 ? "text-red-500 font-medium" : "text-slate-400"}>{counts.unmatched}</span>
+                                                    <span className={unmatchedCount > 0 ? "text-red-500 font-bold" : "text-slate-400 font-medium"}>
+                                                        {unmatchedCount}
+                                                    </span>
                                                 </TableCell>
-                                                <TableCell className="text-right text-slate-500 text-sm">{uploadDate}</TableCell>
+                                                <TableCell className="text-right text-slate-500 text-sm font-medium">{uploadDate}</TableCell>
+                                                <TableCell className="text-right">
+                                                    <UploadDetailsModal batchId={b.id} details={relatedDetails} />
+                                                </TableCell>
                                             </TableRow>
                                         );
                                     })}
@@ -144,8 +128,10 @@ export default async function OrdersPage() {
                             </Table>
                         </div>
                     ) : (
-                        <div className="text-sm text-slate-500 flex h-32 items-center justify-center border rounded-md border-dashed">
-                            Belum ada upload. Gunakan Dropzone di Dashboard untuk mengunggah file .xls.
+                        <div className="text-sm text-slate-500 flex flex-col h-40 items-center justify-center border rounded-md border-dashed bg-secondary/20">
+                            <Upload className="h-8 w-8 text-muted-foreground mb-3 opacity-50" />
+                            <p>Belum ada upload kartu stok di sistem.</p>
+                            <p className="text-xs max-w-sm text-center mt-1">Lakukan drag and drop Kartu Stok melalui Command Center Dashboard.</p>
                         </div>
                     )}
                 </CardContent>

@@ -1,57 +1,69 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { db } from "@/db"
-import { salesReports, salesReportDetails, inventoryState, masterBahan, logPO, activityLog } from "@/db/schema"
-import { desc, eq, sql } from "drizzle-orm"
+import { uploadBatches, uploadBatchDetails, invoices, activityLog } from "@/db/schema"
+import { desc, eq, and, gte, lt, sql } from "drizzle-orm"
 import { BarChart3, TrendingUp, TrendingDown, FileText, ClipboardCheck, Activity } from "lucide-react"
+import { MonthYearPicker } from "@/components/report/MonthYearPicker"
 
-export default async function ReportPage() {
-    // Gather all stats
-    const reports = await db.select().from(salesReports);
-    const allDetails = await db.select().from(salesReportDetails);
-    const allStock = await db.select().from(inventoryState);
-    const allBahan = await db.select().from(masterBahan);
-    const allPO = await db.select().from(logPO);
-    const recentLogs = await db.select().from(activityLog).orderBy(desc(activityLog.timestamp)).limit(20);
+export default async function ReportPage(props: { searchParams: Promise<{ month?: string, year?: string }> }) {
+    const searchParams = await props.searchParams;
+    const currentMonth = new Date().getMonth() + 1;
+    const currentYear = new Date().getFullYear();
 
-    const matchedItems = allDetails.filter(d => d.match_status === 'matched').length;
-    const unmatchedItems = allDetails.filter(d => d.match_status === 'unmatched').length;
-    const matchRate = allDetails.length > 0 ? ((matchedItems / allDetails.length) * 100).toFixed(1) : '0';
+    const targetMonth = parseInt(searchParams.month || currentMonth.toString());
+    const targetYear = parseInt(searchParams.year || currentYear.toString());
 
-    const draftPO = allPO.filter(p => p.status === 'draft').length;
-    const approvedPO = allPO.filter(p => p.status === 'approved').length;
+    // Calculate start and end UNIX timestamps for the selected month to mimic filtering
+    const startDate = new Date(targetYear, targetMonth - 1, 1);
+    const endDate = new Date(targetYear, targetMonth, 1);
+    const startTs = startDate.getTime(); // Wait, created_at might be Date mode in some places, but SQLite uses ISO or numeric. 
+    // In our schema, uploadBatches/invoices use { mode: 'timestamp' } which returns Date objects. 
+    // So we can filter via JS or use SQL Date functions. Let's filter via JS after fetching since data volume is manageable for MVP, or use SQL if possible.
+    // For safety, let's fetch and filter since SQLite dates can be tricky with modes.
 
-    // Stock health
-    const lowStock = allStock.filter(s => {
-        const bahan = allBahan.find(b => b.id === s.id_bahan);
-        return bahan && s.current_stock <= bahan.batas_minimum;
-    }).length;
-    const healthyStock = allStock.length - lowStock;
+    const allBatches = await db.select().from(uploadBatches).orderBy(desc(uploadBatches.created_at));
+    const allDetails = await db.select().from(uploadBatchDetails);
+    const allInvoices = await db.select().from(invoices).orderBy(desc(invoices.created_at));
+    const allLogs = await db.select().from(activityLog).orderBy(desc(activityLog.timestamp));
 
-    // Top consumed items (by lowest stock relative to minimum)
-    const stockHealth = allStock
-        .map(s => {
-            const bahan = allBahan.find(b => b.id === s.id_bahan);
-            if (!bahan) return null;
-            const ratio = bahan.batas_minimum > 0 ? s.current_stock / bahan.batas_minimum : 999;
-            return {
-                nama: bahan.nama_bahan,
-                stok: s.current_stock,
-                minimum: bahan.batas_minimum,
-                satuan: bahan.satuan_dasar,
-                ratio,
-            };
-        })
-        .filter(Boolean)
-        .sort((a, b) => a!.ratio - b!.ratio)
-        .slice(0, 10) as { nama: string; stok: number; minimum: number; satuan: string; ratio: number }[];
+    // FILTER by Selected Month & Year
+    const filteredBatches = allBatches.filter(b => {
+        if (!b.created_at) return false;
+        const d = new Date(b.created_at);
+        return d.getMonth() + 1 === targetMonth && d.getFullYear() === targetYear;
+    });
+
+    const filteredInvoices = allInvoices.filter(i => {
+        if (!i.created_at) return false;
+        const d = new Date(i.created_at);
+        return d.getMonth() + 1 === targetMonth && d.getFullYear() === targetYear;
+    });
+
+    const recentLogs = allLogs.filter(l => {
+        if (!l.timestamp) return false;
+        let d: Date;
+        if (typeof l.timestamp === 'number') d = new Date(l.timestamp * 1000);
+        else d = new Date(l.timestamp);
+        return d.getMonth() + 1 === targetMonth && d.getFullYear() === targetYear;
+    }).slice(0, 50);
+
+    const filteredBatchIds = new Set(filteredBatches.map(b => b.id));
+    const filteredDetails = allDetails.filter(d => filteredBatchIds.has(d.batch_id));
+
+    const matchedItems = filteredDetails.filter(d => d.is_matched).length;
+    const matchRate = filteredDetails.length > 0 ? ((matchedItems / filteredDetails.length) * 100).toFixed(1) : '0';
+
+    const totalInvoiceCost = filteredInvoices.reduce((sum, inv) => sum + inv.total_biaya, 0);
 
     return (
         <div className="flex flex-col gap-6">
-            <div>
-                <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">Report & Analytics</h2>
-                <p className="text-slate-500 dark:text-slate-400">Ringkasan operasional: upload, stok, dan Purchase Order.</p>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">Report & Analytics</h2>
+                    <p className="text-slate-500 dark:text-slate-400">Arsip riwayat operasional, upload stok, dan histori pengeluaran PO.</p>
+                </div>
+                <MonthYearPicker />
             </div>
 
             {/* KPI Summary */}
@@ -63,8 +75,8 @@ export default async function ReportPage() {
                                 <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                             </div>
                             <div>
-                                <p className="text-2xl font-bold">{reports.length}</p>
-                                <p className="text-xs text-slate-500">Files Uploaded</p>
+                                <p className="text-2xl font-bold">{filteredBatches.length}</p>
+                                <p className="text-xs text-slate-500">Stok Uploads</p>
                             </div>
                         </div>
                     </CardContent>
@@ -77,7 +89,7 @@ export default async function ReportPage() {
                             </div>
                             <div>
                                 <p className="text-2xl font-bold">{matchRate}%</p>
-                                <p className="text-xs text-slate-500">Match Rate</p>
+                                <p className="text-xs text-slate-500">Avg. Match Rate</p>
                             </div>
                         </div>
                     </CardContent>
@@ -89,8 +101,8 @@ export default async function ReportPage() {
                                 <ClipboardCheck className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                             </div>
                             <div>
-                                <p className="text-2xl font-bold">{draftPO} / {approvedPO}</p>
-                                <p className="text-xs text-slate-500">Draft / Approved PO</p>
+                                <p className="text-2xl font-bold">{filteredInvoices.length}</p>
+                                <p className="text-xs text-slate-500">Invoice Approved</p>
                             </div>
                         </div>
                     </CardContent>
@@ -98,102 +110,61 @@ export default async function ReportPage() {
                 <Card>
                     <CardContent className="pt-6">
                         <div className="flex items-center gap-3">
-                            <div className={`${lowStock > 0 ? 'bg-red-100 dark:bg-red-500/20' : 'bg-emerald-100 dark:bg-emerald-500/20'} p-2.5 rounded-xl`}>
-                                <TrendingDown className={`h-5 w-5 ${lowStock > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`} />
+                            <div className={'bg-red-100 dark:bg-red-500/20 p-2.5 rounded-xl'}>
+                                <TrendingDown className={'h-5 w-5 text-red-600 dark:text-red-400'} />
                             </div>
                             <div>
-                                <p className="text-2xl font-bold">{lowStock}</p>
-                                <p className="text-xs text-slate-500">Low Stock Items</p>
+                                <p className="text-2xl font-bold">
+                                    <span className="text-sm">Rp</span> {(totalInvoiceCost / 1000000).toFixed(1)}<span className="text-sm">M</span>
+                                </p>
+                                <p className="text-xs text-slate-500">Total Pengeluaran PO</p>
                             </div>
                         </div>
                     </CardContent>
                 </Card>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Critical Stock Items */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <BarChart3 className="h-5 w-5" />
-                            Stok Paling Kritis
-                        </CardTitle>
-                        <CardDescription>10 bahan baku dengan rasio stok terhadap minimum terendah.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {stockHealth.length > 0 ? (
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Bahan</TableHead>
-                                        <TableHead className="text-right">Stok</TableHead>
-                                        <TableHead className="text-right">Min</TableHead>
-                                        <TableHead className="text-center">Status</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {stockHealth.map((item, i) => (
-                                        <TableRow key={i}>
-                                            <TableCell className="font-medium">{item.nama}</TableCell>
-                                            <TableCell className="text-right">{item.stok.toFixed(1)} {item.satuan}</TableCell>
-                                            <TableCell className="text-right text-slate-500">{item.minimum}</TableCell>
-                                            <TableCell className="text-center">
-                                                {item.ratio <= 0 ? (
-                                                    <Badge variant="destructive">Habis</Badge>
-                                                ) : item.ratio <= 1 ? (
-                                                    <Badge className="bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400 border-0">Low</Badge>
-                                                ) : item.ratio <= 1.5 ? (
-                                                    <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 border-0">Warning</Badge>
-                                                ) : (
-                                                    <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 border-0">OK</Badge>
-                                                )}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        ) : (
-                            <div className="text-sm text-slate-500 flex h-24 items-center justify-center border rounded-md border-dashed">
-                                Belum ada data inventori.
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-
+            <div className="grid grid-cols-1 gap-6">
                 {/* Recent Activity */}
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <Activity className="h-5 w-5" />
-                            Activity Log
+                            Activity Log ({startDate.toLocaleString('id-ID', { month: 'short', year: 'numeric' })})
                         </CardTitle>
-                        <CardDescription>20 aktivitas terakhir yang tercatat oleh sistem.</CardDescription>
+                        <CardDescription>Rekam jejak seluruh aktivitas sinkronisasi dan manajemen arsip di bulan terpilih.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         {recentLogs.length > 0 ? (
                             <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-                                {recentLogs.map((log) => (
-                                    <div key={log.id} className="flex items-start gap-3 p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                                        <div className="bg-primary/10 p-1.5 rounded-full mt-0.5">
-                                            <Activity className="h-3 w-3 text-primary" />
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-sm leading-snug">{log.action}</p>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <span className="text-xs text-slate-500">{log.user}</span>
-                                                <span className="text-xs text-slate-400">
-                                                    {log.timestamp ? new Date(Number(log.timestamp) * 1000).toLocaleString('id-ID', {
-                                                        day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
-                                                    }) : '-'}
-                                                </span>
+                                {recentLogs.map((log) => {
+                                    let logDate: Date;
+                                    if (typeof log.timestamp === 'number') logDate = new Date(log.timestamp * 1000);
+                                    else logDate = new Date(log.timestamp || new Date());
+
+                                    return (
+                                        <div key={log.id} className="flex items-start gap-3 p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                                            <div className="bg-primary/10 p-1.5 rounded-full mt-0.5">
+                                                <Activity className="h-3 w-3 text-primary" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm leading-snug">{log.action}</p>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <span className="text-xs font-medium text-slate-500">{log.user}</span>
+                                                    <span className="text-xs text-slate-400">
+                                                        {logDate.toLocaleString('id-ID', {
+                                                            day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+                                                        })}
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    )
+                                })}
                             </div>
                         ) : (
-                            <div className="text-sm text-slate-500 flex h-24 items-center justify-center border rounded-md border-dashed">
-                                Belum ada aktivitas tercatat.
+                            <div className="text-sm text-slate-500 flex h-32 items-center justify-center border rounded-md border-dashed bg-secondary/20">
+                                Tidak ada aktivitas yang tersimpan di bulan ini.
                             </div>
                         )}
                     </CardContent>

@@ -5,6 +5,7 @@ export const masterVendor = sqliteTable("MASTER_VENDOR", {
     id: text("id").primaryKey(),
     nama_vendor: text("nama_vendor").notNull(),
     kontak_wa: text("kontak_wa"),
+    info_pembayaran: text("info_pembayaran"),
 });
 
 export const masterBahan = sqliteTable("MASTER_BAHAN", {
@@ -12,6 +13,7 @@ export const masterBahan = sqliteTable("MASTER_BAHAN", {
     nama_bahan: text("nama_bahan").notNull(),
     satuan_dasar: text("satuan_dasar").notNull(),
     batas_minimum: real("batas_minimum").notNull(),
+    harga_satuan: real("harga_satuan").default(0),
     vendor_id: text("vendor_id").references(() => masterVendor.id),
     kategori_khusus: text("kategori_khusus"), // To bypass Consignment
 });
@@ -91,4 +93,45 @@ export const stockMovement = sqliteTable("STOCK_MOVEMENT", {
 export const appSettings = sqliteTable("APP_SETTINGS", {
     key: text("key").primaryKey(),
     value: text("value").notNull(),
+});
+
+// PRD V4.0: Tracking physical uploads instead of random generic overwriting
+export const uploadBatches = sqliteTable("UPLOAD_BATCHES", {
+    id: text("id").primaryKey(), // Using timestamp logic or UIID
+    created_at: integer("created_at", { mode: 'timestamp' }).notNull().default(sql`(strftime('%s', 'now'))`),
+    outlet_id: text("outlet_id").notNull(),
+    status: text("status").notNull(), // e.g. 'processed'
+});
+
+export const inventoryLogs = sqliteTable("INVENTORY_LOGS", {
+    id: text("id").primaryKey(),
+    batch_id: text("batch_id").references(() => uploadBatches.id).notNull(),
+    id_bahan: text("id_bahan").notNull(),
+    current_stock: real("current_stock").notNull(),
+    min_stock: real("min_stock").notNull(), // Snapshot
+});
+
+export const uploadBatchDetails = sqliteTable("UPLOAD_BATCH_DETAILS", {
+    id: text("id").primaryKey(),
+    batch_id: text("batch_id").references(() => uploadBatches.id).notNull(),
+    nama_bahan_raw: text("nama_bahan_raw").notNull(),
+    is_matched: integer("is_matched", { mode: 'boolean' }).notNull(),
+});
+
+export const invoices = sqliteTable("INVOICES", {
+    id: text("id").primaryKey(), // Using random UUID
+    vendor_nama: text("vendor_nama").notNull(),
+    total_items: integer("total_items").notNull(),
+    total_biaya: real("total_biaya").notNull(),
+    status: text("status").notNull().default("UNPAID"), // PAID / UNPAID
+    created_at: integer("created_at", { mode: 'timestamp' }).notNull().default(sql`(strftime('%s', 'now'))`),
+});
+
+export const invoiceItems = sqliteTable("INVOICE_ITEMS", {
+    id: text("id").primaryKey(),
+    invoice_id: text("invoice_id").references(() => invoices.id).notNull(),
+    bahan_id: text("bahan_id").notNull(),
+    nama_bahan: text("nama_bahan").notNull(),
+    qty: real("qty").notNull(),
+    harga_satuan: real("harga_satuan").notNull(),
 });

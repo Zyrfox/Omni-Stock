@@ -3,7 +3,7 @@ import { ProfitChart } from "@/components/dashboard/ProfitChart";
 import { OrderSummaryChart } from "@/components/dashboard/OrderSummaryChart";
 import { StockLevel } from "@/components/dashboard/StockLevel";
 import { UpcomingRestock } from "@/components/dashboard/UpcomingRestock";
-import { TrafficSource } from "@/components/dashboard/TrafficSource";
+import { InvoiceGenerator } from "@/components/dashboard/InvoiceGenerator";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { ProductTable } from "@/components/dashboard/ProductTable";
 import { DropzoneUploader } from "@/components/dashboard/DropzoneUploader";
@@ -36,7 +36,7 @@ export default function Dashboard() {
 
       {/* Right/Side Analytics Content (Span 4) */}
       <div className="xl:col-span-4 flex flex-col gap-4 md:gap-6">
-        <TrafficSource />
+        <InvoiceGenerator />
         <RecentActivity />
       </div>
     </div>

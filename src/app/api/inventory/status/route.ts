@@ -1,11 +1,15 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
-import { inventoryState } from '@/db/schema';
+import { uploadBatches, inventoryLogs } from '@/db/schema';
 import { fetchMasterData } from '@/lib/gsheets';
+import { desc, eq } from 'drizzle-orm';
 
 export async function GET() {
     try {
-        const allStock = await db.select().from(inventoryState);
+        const [latestBatch] = await db.select().from(uploadBatches).orderBy(desc(uploadBatches.created_at)).limit(1);
+        if (!latestBatch) return NextResponse.json([]);
+
+        const allStock = await db.select().from(inventoryLogs).where(eq(inventoryLogs.batch_id, latestBatch.id));
         const masterData = await fetchMasterData();
 
         if (!masterData) throw new Error("Master Data Not Available");
@@ -22,7 +26,7 @@ export async function GET() {
                 satuan: bahanMeta ? bahanMeta.satuan_dasar : "pcs",
                 batas_minimum: bahanMeta ? parseFloat(bahanMeta.Minimal_Stock || "0") : 0,
                 vendor_id: bahanMeta ? bahanMeta.id_vendor : null,
-                last_updated: stock.last_updated
+                last_updated: latestBatch.created_at
             };
         });
 

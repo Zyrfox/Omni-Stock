@@ -1,11 +1,15 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { activityLog } from '@/db/schema';
-import { desc } from 'drizzle-orm';
+import { desc, gte } from 'drizzle-orm';
 
 export async function GET() {
     try {
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+
         const activities = await db.query.activityLog.findMany({
+            where: gte(activityLog.timestamp, todayStart),
             orderBy: [desc(activityLog.timestamp)],
             limit: 5
         });

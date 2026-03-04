@@ -2,10 +2,14 @@ import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { salesHistory } from '@/db/schema';
 import { fetchMasterData } from '@/lib/gsheets';
+import { gte } from 'drizzle-orm';
 
 export async function GET() {
     try {
-        const allSales = await db.select().from(salesHistory);
+        const oneMonthAgo = new Date();
+        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
+        const allSales = await db.select().from(salesHistory).where(gte(salesHistory.date, oneMonthAgo));
         const masterData = await fetchMasterData();
 
         if (!masterData) throw new Error("Master Data Not Available");

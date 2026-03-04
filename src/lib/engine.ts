@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { inventoryState, activityLog, logPO } from "@/db/schema";
+import { inventoryState, activityLog, logPO, uploadBatches, inventoryLogs, uploadBatchDetails } from "@/db/schema";
 import { fetchMasterData } from "./gsheets";
 import { sendTelegramAlert } from "./alert";
 import { eq } from "drizzle-orm";
@@ -15,7 +15,7 @@ interface KartuStokRow {
     kategori: string;
 }
 
-export async function processSalesData(items: KartuStokRow[], user = "System") {
+export async function processSalesData(items: KartuStokRow[], user = "System", outletName = "Unknown") {
     console.log(`[ENGINE] Processing ${items.length} Kartu Stok rows...`);
     const masterData = await fetchMasterData();
 
@@ -23,6 +23,13 @@ export async function processSalesData(items: KartuStokRow[], user = "System") {
 
     const { bahan } = masterData;
     const lowStockAlerts: { nama_bahan: string, current_stock: number, minimum: number, vendor_id: string }[] = [];
+
+    const batchId = crypto.randomUUID();
+    await db.insert(uploadBatches).values({
+        id: batchId,
+        outlet_id: outletName,
+        status: "processed",
+    });
 
     let matchedCount = 0;
     let unmatchedCount = 0;
@@ -36,10 +43,26 @@ export async function processSalesData(items: KartuStokRow[], user = "System") {
         if (!matchedBahan) {
             console.warn(`[ENGINE] Bahan tidak ditemukan di Master: ${item.nama_bahan}`);
             unmatchedCount++;
+
+            await db.insert(uploadBatchDetails).values({
+                id: crypto.randomUUID(),
+                batch_id: batchId,
+                nama_bahan_raw: item.nama_bahan,
+                is_matched: false,
+            });
+
             continue;
         }
 
         matchedCount++;
+
+        await db.insert(uploadBatchDetails).values({
+            id: crypto.randomUUID(),
+            batch_id: batchId,
+            nama_bahan_raw: item.nama_bahan,
+            is_matched: true,
+        });
+
         const id_bahan = matchedBahan.id_bahan;
 
         // LANGSUNG SET stok dari Stok Akhir Pawoon (bukan deduct!)
@@ -64,6 +87,15 @@ export async function processSalesData(items: KartuStokRow[], user = "System") {
         }
 
         const minStock = parseFloat(matchedBahan.Minimal_Stock || "0");
+
+        // [PRD V4.0] Logging detailed variation mapped directly to the Upload Batch
+        await db.insert(inventoryLogs).values({
+            id: crypto.randomUUID(),
+            batch_id: batchId,
+            id_bahan: id_bahan,
+            current_stock: newStock,
+            min_stock: minStock,
+        });
 
         console.log(`[ENGINE] ✓ ${matchedBahan.nama_bahan}: stok → ${newStock} ${item.satuan} (min: ${minStock})`);
 

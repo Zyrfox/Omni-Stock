@@ -75,7 +75,7 @@ export async function POST(request: Request) {
             });
         }
 
-        const result = await processSalesData(parsedItems, `Upload: ${file.name}`);
+        const result = await processSalesData(parsedItems, `Upload: ${file.name}`, outletName);
 
         return NextResponse.json({
             success: true,

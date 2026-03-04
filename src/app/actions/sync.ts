@@ -26,7 +26,7 @@ function getGoogleAuth() {
     });
 }
 
-async function fetchSheetData(sheetName: string): Promise<string[][]> {
+async function fetchSheetData(sheetName: string): Promise<{ headers: string[], rows: string[][] }> {
     const auth = getGoogleAuth();
     const sheets = google.sheets({ version: 'v4', auth });
     const spreadsheetId = process.env.GOOGLE_SHEETS_ID;
@@ -40,9 +40,11 @@ async function fetchSheetData(sheetName: string): Promise<string[][]> {
         range: `${sheetName}!A:Z`,
     });
 
-    const rows = response.data.values || [];
-    // Skip header row
-    return rows.slice(1) as string[][];
+    const data = response.data.values || [];
+    const headers = data.length > 0 ? data[0].map(h => String(h).trim()) : [];
+    const rows = data.length > 1 ? data.slice(1) as string[][] : [];
+
+    return { headers, rows };
 }
 
 export async function syncMasterData() {
@@ -50,12 +52,18 @@ export async function syncMasterData() {
         console.log('[Sync] Starting Google Sheets v4 API sync...');
 
         // 1. Fetch ALL sheets in PARALLEL via Google Sheets API v4
-        const [vendorRows, bahanRows, menuRows, resepRows] = await Promise.all([
+        const [vendorData, bahanData, menuData, resepData] = await Promise.all([
             fetchSheetData('Master_Vendor'),
             fetchSheetData('Master_Bahan'),
             fetchSheetData('Master_Menu'),
             fetchSheetData('Master_Resep'),
         ]);
+
+        const { rows: vendorRows, headers: vendorHeaders } = vendorData;
+        const { rows: bahanRows, headers: bahanHeaders } = bahanData;
+        const { rows: menuRows } = menuData;
+        const { rows: resepRows } = resepData;
+
         console.log('[Sync] Fetched rows:', { vendors: vendorRows.length, bahan: bahanRows.length, menu: menuRows.length, resep: resepRows.length });
 
         // 2. Clear existing tables in FK-safe order
@@ -68,12 +76,14 @@ export async function syncMasterData() {
         console.log('[Sync] Tables cleared.');
 
         // 3. Insert Vendors
+        const vendorInfoIndex = vendorHeaders.findIndex(h => h.toLowerCase() === 'info_pembayaran');
         const vendorInserts = vendorRows
             .filter(row => row[0] && !row[0].startsWith('---') && row[0].trim() !== '')
             .map(row => ({
                 id: String(row[0]).trim(),
                 nama_vendor: String(row[1] || 'Unknown').trim(),
                 kontak_wa: String(row[3] || '').replace(/[^0-9]/g, '') || null,
+                info_pembayaran: vendorInfoIndex !== -1 ? String(row[vendorInfoIndex] || '') : null,
             }));
 
         if (vendorInserts.length > 0) {
@@ -83,6 +93,7 @@ export async function syncMasterData() {
 
         // 4. Insert Bahan
         const bahanMap = new Map<string, string>();
+        const hargaSatuanIndex = bahanHeaders.findIndex(h => h.toLowerCase() === 'harga_satuan');
         const bahanInserts = bahanRows
             .filter(row => row[0] && !row[0].startsWith('---') && row[0].trim() !== '')
             .map(row => {
@@ -95,6 +106,7 @@ export async function syncMasterData() {
                     nama_bahan: bahanNama,
                     satuan_dasar: String(row[2] || 'Pcs').trim(),
                     batas_minimum: parseFloat(String(row[3])) || 10,
+                    harga_satuan: hargaSatuanIndex !== -1 ? parseFloat(String(row[hargaSatuanIndex]).replace(/[^0-9.-]+/g, "")) || 0 : 0,
                     vendor_id: (rawVendorId && rawVendorId !== '---' && rawVendorId !== '-') ? rawVendorId : null,
                     kategori_khusus: String(row[5] || '').trim(),
                 };
