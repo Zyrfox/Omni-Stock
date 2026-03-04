@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { syncMasterData } from '@/app/actions/sync';
 
@@ -15,3 +16,4 @@ export async function POST() {
         return NextResponse.json({ success: false, error: error.message || 'Failed to sync' }, { status: 500 });
     }
 }
+

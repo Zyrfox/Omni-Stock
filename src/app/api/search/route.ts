@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { masterMenu, masterBahan } from "@/db/schema";
@@ -72,3 +73,4 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: "Failed to search" }, { status: 500 });
     }
 }
+

@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 // @ts-nocheck
 import { NextResponse } from 'next/server';
 import Imap from 'node-imap';
@@ -5,7 +6,7 @@ import { simpleParser } from 'mailparser';
 import * as xlsx from 'xlsx';
 import { processSalesData } from '@/lib/engine';
 
-export function POST(req: Request): Promise<NextResponse> {
+export async function POST(req: Request): Promise<NextResponse> {
     const imapConfig = {
         user: process.env.IMAP_USER || '',
         password: process.env.IMAP_PASSWORD || '',
@@ -40,7 +41,7 @@ export function POST(req: Request): Promise<NextResponse> {
 
                     fetch.on('message', (msg) => {
                         msg.on('body', (stream) => {
-                            simpleParser(stream, async (err, parsed) => {
+                            simpleParser(stream as any, async (err, parsed) => {
                                 if (err) return;
 
                                 const attachment = parsed.attachments.find(a => a.filename?.endsWith('.xls') || a.filename?.endsWith('.xlsx'));
@@ -62,7 +63,7 @@ export function POST(req: Request): Promise<NextResponse> {
                                         })).filter(r => r.qty_sold > 0);
 
                                         // Mark as read and process
-                                        await processSalesData(parsedSales, "Auto-Email System");
+                                        await processSalesData(parsedSales as any, "Auto-Email System");
                                     } catch (e) {
                                         console.error("[IMAP] Error parsing or processing attached Excel:", e);
                                     }
@@ -94,3 +95,4 @@ export function POST(req: Request): Promise<NextResponse> {
         imap.connect();
     });
 }
+

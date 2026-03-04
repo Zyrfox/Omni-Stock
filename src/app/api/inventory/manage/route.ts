@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { inventoryState } from '@/db/schema';
@@ -42,3 +43,4 @@ export async function DELETE(request: Request) {
         return NextResponse.json({ error: 'Gagal menghapus item' }, { status: 500 });
     }
 }
+

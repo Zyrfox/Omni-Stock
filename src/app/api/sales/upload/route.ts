@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { processSalesData } from '@/lib/engine';
 import * as xlsx from 'xlsx';
@@ -88,3 +89,4 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Gagal memproses file' }, { status: 500 });
     }
 }
+
