@@ -69,8 +69,8 @@ export async function processSalesData(items: KartuStokRow[], user = "System", o
         // Stok Akhir = sumber kebenaran dari POS Pawoon
         const newStock = item.stok_akhir;
 
-        const existingStock = await db.select().from(inventoryState)
-            .where(eq(inventoryState.id_bahan, id_bahan)).get();
+        const [existingStock] = await db.select().from(inventoryState)
+            .where(eq(inventoryState.id_bahan, id_bahan));
 
         if (existingStock) {
             await db.update(inventoryState)

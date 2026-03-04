@@ -66,20 +66,10 @@ export function ProductTable() {
     }
 
     const handleClearInventory = async () => {
-        const loadingToast = toast.loading("Membersihkan data inventori...");
-        try {
-            const res = await fetch("/api/inventory/clear", { method: "DELETE" });
-            const data = await res.json();
-
-            if (data.success) {
-                toast.success("Data inventori berhasil dikosongkan!", { id: loadingToast });
-                await fetchProducts(); // Reload empty table
-            } else {
-                toast.error("Gagal mengosongkan data", { description: data.error, id: loadingToast });
-            }
-        } catch (error: any) {
-            toast.error("Terjadi kesalahan jaringan", { id: loadingToast });
-        }
+        setProducts([]);
+        toast.success("Tampilan tabel berhasil dibersihkan.", {
+            description: "Peringatan: Data di database tidak terhapus."
+        });
     };
 
     useEffect(() => { fetchProducts(); }, []);
