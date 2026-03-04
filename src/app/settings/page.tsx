@@ -2,67 +2,29 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { RefreshCw, DownloadCloud, Save, Link2, CheckCircle2 } from "lucide-react"
+import { RefreshCw, DownloadCloud, Database, CheckCircle2, CloudCog } from "lucide-react"
 import { syncMasterData } from "@/app/actions/sync"
 import { toast } from "sonner"
-import { useState, useEffect } from "react"
-
-const CSV_KEYS = [
-    { key: 'CSV_URL_VENDOR', label: 'Master Vendor', placeholder: 'https://docs.google.com/spreadsheets/d/e/.../pub?gid=...&output=csv' },
-    { key: 'CSV_URL_BAHAN', label: 'Master Bahan Baku', placeholder: 'https://docs.google.com/spreadsheets/d/e/.../pub?gid=...&output=csv' },
-    { key: 'CSV_URL_MENU', label: 'Master Menu', placeholder: 'https://docs.google.com/spreadsheets/d/e/.../pub?gid=...&output=csv' },
-    { key: 'CSV_URL_RESEP', label: 'Mapping Resep', placeholder: 'https://docs.google.com/spreadsheets/d/e/.../pub?gid=...&output=csv' },
-];
-
-const STORAGE_KEY = 'omni_stock_csv_urls';
-
-function loadUrls(): Record<string, string> {
-    if (typeof window === 'undefined') return {};
-    try {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        return stored ? JSON.parse(stored) : {};
-    } catch { return {}; }
-}
-
-function saveUrls(urls: Record<string, string>) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(urls));
-}
+import { useState } from "react"
 
 export default function SettingsPage() {
     const [isSyncing, setIsSyncing] = useState(false)
-    const [csvUrls, setCsvUrls] = useState<Record<string, string>>({})
-    const [saved, setSaved] = useState(false)
-
-    useEffect(() => {
-        setCsvUrls(loadUrls());
-    }, [])
-
-    const handleSaveUrls = () => {
-        saveUrls(csvUrls);
-        setSaved(true);
-        toast.success("CSV URLs Saved!", { description: "Link tersimpan di browser." });
-        setTimeout(() => setSaved(false), 3000);
-    }
 
     const handleSync = async () => {
-        // Save first, then sync with URLs passed directly
-        saveUrls(csvUrls);
         setIsSyncing(true);
         try {
-            const result = await syncMasterData(csvUrls);
+            const result = await syncMasterData();
             if (result.success) {
                 toast.success("Sync Successful", { description: result.message });
             } else {
                 toast.error("Sync Failed", { description: result.error });
             }
-        } catch (err) {
-            toast.error("Sync Error", { description: "Terjadi error saat sync. Cek console untuk detail." });
+        } catch (err: any) {
+            toast.error("Sync Error", { description: err.message || "Terjadi error saat sync. Cek console untuk detail." });
         } finally {
             setIsSyncing(false);
         }
     }
-
-    const filledCount = CSV_KEYS.filter(c => csvUrls[c.key]?.trim()).length;
 
     return (
         <div className="flex flex-col gap-6">
@@ -71,50 +33,39 @@ export default function SettingsPage() {
                 <p className="text-slate-500 dark:text-slate-400">System configuration and manual triggers.</p>
             </div>
 
-            {/* CSV URL Configuration */}
+            {/* Google Sheets API Status */}
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                        <Link2 className="h-5 w-5" />
-                        Google Sheets CSV Links
+                        <CloudCog className="h-5 w-5" />
+                        Google Sheets API (v4)
                     </CardTitle>
                     <CardDescription>
-                        Masukkan link CSV dari Google Sheets yang sudah di-publish.
-                        Buka Google Sheets → File → Share → Publish to web → pilih sheet → format CSV → Copy link.
+                        Sync data langsung dari Google Sheets menggunakan Service Account API.
+                        Konfigurasi dilakukan via environment variables.
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                    {CSV_KEYS.map(({ key, label, placeholder }) => (
-                        <div key={key} className="space-y-1.5">
-                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                                {label}
-                                {csvUrls[key]?.trim() && (
-                                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                                )}
-                            </label>
-                            <input
-                                type="url"
-                                className="w-full px-3 py-2 text-sm rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
-                                placeholder={placeholder}
-                                value={csvUrls[key] || ''}
-                                onChange={(e) => setCsvUrls(prev => ({ ...prev, [key]: e.target.value }))}
-                            />
-                        </div>
-                    ))}
-
-                    <div className="flex items-center gap-3 pt-2">
-                        <Button onClick={handleSaveUrls} className="flex items-center gap-2">
-                            <Save className="h-4 w-4" />
-                            Save CSV Links
-                        </Button>
-                        <span className="text-xs text-slate-500">
-                            {filledCount}/4 links configured
+                <CardContent className="space-y-3">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-lg text-sm border border-emerald-100 dark:border-emerald-800/50">
+                        <CheckCircle2 className="h-4 w-4 shrink-0" />
+                        <span>
+                            Menggunakan <span className="font-mono font-semibold">GOOGLE_SHEETS_ID</span> dari environment variables.
+                            CSV links tidak diperlukan lagi.
                         </span>
-                        {saved && (
-                            <span className="text-xs text-emerald-500 font-medium flex items-center gap-1">
-                                <CheckCircle2 className="h-3 w-3" /> Saved!
-                            </span>
-                        )}
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                        <div className="bg-muted/50 px-3 py-2 rounded-lg">
+                            <span className="text-muted-foreground">Spreadsheet:</span>
+                            <p className="font-mono font-medium mt-0.5 truncate">{process.env.NEXT_PUBLIC_GOOGLE_SHEETS_ID || '••• configured •••'}</p>
+                        </div>
+                        <div className="bg-muted/50 px-3 py-2 rounded-lg">
+                            <span className="text-muted-foreground">Sheets Sync:</span>
+                            <p className="font-medium mt-0.5">Master_Vendor, Master_Bahan, Master_Menu, Mapping_Resep</p>
+                        </div>
+                        <div className="bg-muted/50 px-3 py-2 rounded-lg">
+                            <span className="text-muted-foreground">Auth Method:</span>
+                            <p className="font-medium mt-0.5">Service Account (GoogleAuth)</p>
+                        </div>
                     </div>
                 </CardContent>
             </Card>
@@ -122,17 +73,17 @@ export default function SettingsPage() {
             <div className="grid gap-6 md:grid-cols-2">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Master Data Sync</CardTitle>
-                        <CardDescription>Sync data dari Google Sheets CSV ke database. Pastikan CSV links sudah di-isi di atas.</CardDescription>
+                        <CardTitle className="flex items-center gap-2">
+                            <Database className="h-5 w-5" />
+                            Master Data Sync
+                        </CardTitle>
+                        <CardDescription>Sync data dari Google Sheets API ke database. Data akan diambil langsung dari spreadsheet.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Button className="flex items-center gap-2" onClick={handleSync} disabled={isSyncing || filledCount < 3}>
+                        <Button className="flex items-center gap-2" onClick={handleSync} disabled={isSyncing}>
                             <RefreshCw className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />
                             {isSyncing ? "Syncing..." : "Sync Master Data Now"}
                         </Button>
-                        {filledCount < 3 && (
-                            <p className="text-xs text-amber-500 mt-2">⚠️ Minimal 3 CSV links (Vendor, Bahan, Menu) harus di-isi sebelum sync.</p>
-                        )}
                     </CardContent>
                 </Card>
 

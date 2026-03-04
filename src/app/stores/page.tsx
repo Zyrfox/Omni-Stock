@@ -11,14 +11,15 @@ export default async function StoresPage() {
     const allStock = await db.select().from(inventoryState);
     const allBahan = await db.select().from(masterBahan);
 
-    // Group menus by resolved outlet name (using shared config)
-    const outletMap = new Map<string, { menuCount: number; menuNames: string[] }>();
+    // Group menus by outlet prefix (slug) for routing
+    const outletMap = new Map<string, { prefix: string; name: string; menuCount: number; menuNames: string[] }>();
     for (const m of menus) {
+        const prefix = m.id.split('_')[0];
         const outletName = resolveOutletName(m.id);
-        if (!outletMap.has(outletName)) {
-            outletMap.set(outletName, { menuCount: 0, menuNames: [] });
+        if (!outletMap.has(prefix)) {
+            outletMap.set(prefix, { prefix, name: outletName, menuCount: 0, menuNames: [] });
         }
-        const entry = outletMap.get(outletName)!;
+        const entry = outletMap.get(prefix)!;
         entry.menuCount++;
         if (entry.menuNames.length < 3) {
             entry.menuNames.push(m.nama_menu);
@@ -31,10 +32,7 @@ export default async function StoresPage() {
         return bahan && s.current_stock <= bahan.batas_minimum;
     }).length;
 
-    const outlets = Array.from(outletMap.entries()).map(([id, data]) => ({
-        id,
-        ...data,
-    }));
+    const outlets = Array.from(outletMap.values());
 
     return (
         <div className="flex flex-col gap-6">
@@ -90,7 +88,7 @@ export default async function StoresPage() {
             {outlets.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {outlets.map(o => (
-                        <Link key={o.id} href={`/stores/${encodeURIComponent(o.id)}`}>
+                        <Link key={o.prefix} href={`/stores/${o.prefix}`}>
                             <Card className="group cursor-pointer transition-all duration-200 hover:-translate-y-1 hover:shadow-lg hover:border-lime-500/50 h-full">
                                 <CardContent className="pt-6 flex flex-col gap-4 h-full">
                                     {/* Header */}
@@ -100,8 +98,8 @@ export default async function StoresPage() {
                                                 <Store className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
                                             </div>
                                             <div>
-                                                <p className="font-bold text-lg leading-tight">{o.id}</p>
-                                                <p className="text-xs text-slate-500">Outlet</p>
+                                                <p className="font-bold text-lg leading-tight">{o.name}</p>
+                                                <p className="text-xs text-slate-500">Outlet • {o.prefix}</p>
                                             </div>
                                         </div>
                                         <ChevronRight className="h-5 w-5 text-slate-400 opacity-0 group-hover:opacity-100 group-hover:text-lime-500 group-hover:translate-x-0.5 transition-all" />

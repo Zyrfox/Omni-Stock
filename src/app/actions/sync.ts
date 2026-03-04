@@ -3,69 +3,62 @@
 import { db } from '@/db'
 import { masterVendor, masterBahan, masterMenu, mappingResep, inventoryState, logPO } from '@/db/schema'
 import { sql } from 'drizzle-orm'
-import Papa from 'papaparse'
+import { google } from 'googleapis'
 
-interface SyncUrls {
-    CSV_URL_VENDOR?: string;
-    CSV_URL_BAHAN?: string;
-    CSV_URL_MENU?: string;
-    CSV_URL_RESEP?: string;
+function getGoogleAuth() {
+    const clientEmail = process.env.GOOGLE_SHEETS_CLIENT_EMAIL;
+    const privateKey = process.env.GOOGLE_SHEETS_PRIVATE_KEY?.replace(/\\n/g, '\n');
+
+    if (!clientEmail || !privateKey) {
+        throw new Error('Google Sheets credentials not configured. Set GOOGLE_SHEETS_CLIENT_EMAIL and GOOGLE_SHEETS_PRIVATE_KEY in .env');
+    }
+
+    return new google.auth.GoogleAuth({
+        credentials: {
+            client_email: clientEmail,
+            private_key: privateKey,
+        },
+        scopes: [
+            'https://www.googleapis.com/auth/drive',
+            'https://www.googleapis.com/auth/drive.file',
+            'https://www.googleapis.com/auth/spreadsheets',
+        ],
+    });
 }
 
-export async function syncMasterData(urls?: SyncUrls) {
+async function fetchSheetData(sheetName: string): Promise<string[][]> {
+    const auth = getGoogleAuth();
+    const sheets = google.sheets({ version: 'v4', auth });
+    const spreadsheetId = process.env.GOOGLE_SHEETS_ID;
+
+    if (!spreadsheetId) {
+        throw new Error('Missing GOOGLE_SHEETS_ID in environment variables');
+    }
+
+    const response = await sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: `${sheetName}!A:Z`,
+    });
+
+    const rows = response.data.values || [];
+    // Skip header row
+    return rows.slice(1) as string[][];
+}
+
+export async function syncMasterData() {
     try {
-        // Use provided URLs first, fallback to env vars
-        const vendorUrl = urls?.CSV_URL_VENDOR?.trim() || process.env.CSV_URL_VENDOR;
-        const bahanUrl = urls?.CSV_URL_BAHAN?.trim() || process.env.CSV_URL_BAHAN;
-        const menuUrl = urls?.CSV_URL_MENU?.trim() || process.env.CSV_URL_MENU;
-        const resepUrl = urls?.CSV_URL_RESEP?.trim() || process.env.CSV_URL_RESEP;
+        console.log('[Sync] Starting Google Sheets v4 API sync...');
 
-        if (!vendorUrl || !bahanUrl || !menuUrl) {
-            return {
-                success: false,
-                error: 'CSV URL belum di-set. Masukkan link CSV Google Sheets di halaman Settings.'
-            };
-        }
-
-        console.log('[Sync] Starting with URLs:', { vendorUrl: !!vendorUrl, bahanUrl: !!bahanUrl, menuUrl: !!menuUrl, resepUrl: !!resepUrl });
-
-        const fetchWithTimeout = async (url: string, timeoutMs = 20000): Promise<string> => {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-            try {
-                const res = await fetch(url, {
-                    signal: controller.signal,
-                    headers: { 'Cache-Control': 'no-cache' },
-                });
-                if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText} → ${url}`);
-                return await res.text();
-            } finally {
-                clearTimeout(timeoutId);
-            }
-        };
-
-        const fetchAndParseCSV = async (url: string | undefined): Promise<string[][]> => {
-            if (!url) return [];
-            const text = await fetchWithTimeout(url);
-            const result = Papa.parse<string[]>(text, { header: false, skipEmptyLines: true });
-            if (result.errors.length > 0) {
-                console.warn('[Sync] CSV parse warnings:', result.errors.slice(0, 3));
-            }
-            return result.data.slice(1); // skip header row
-        };
-
-        // 1. Fetch ALL CSVs in PARALLEL
-        console.log('[Sync] Fetching CSVs...');
+        // 1. Fetch ALL sheets in PARALLEL via Google Sheets API v4
         const [vendorRows, bahanRows, menuRows, resepRows] = await Promise.all([
-            fetchAndParseCSV(vendorUrl),
-            fetchAndParseCSV(bahanUrl),
-            fetchAndParseCSV(menuUrl),
-            fetchAndParseCSV(resepUrl),
+            fetchSheetData('Master_Vendor'),
+            fetchSheetData('Master_Bahan'),
+            fetchSheetData('Master_Menu'),
+            fetchSheetData('Mapping_Resep'),
         ]);
         console.log('[Sync] Fetched rows:', { vendors: vendorRows.length, bahan: bahanRows.length, menu: menuRows.length, resep: resepRows.length });
 
         // 2. Clear existing tables in FK-safe order
-        // Use sql`1=1` to ensure Drizzle/LibSQL actually executes the DELETE
         console.log('[Sync] Clearing existing data...');
         await db.delete(logPO).where(sql`1=1`);
         await db.delete(mappingResep).where(sql`1=1`);
@@ -89,7 +82,7 @@ export async function syncMasterData(urls?: SyncUrls) {
         }
 
         // 4. Insert Bahan
-        const bahanMap = new Map<string, string>(); // name -> id
+        const bahanMap = new Map<string, string>();
         const bahanInserts = bahanRows
             .filter(row => row[0] && !row[0].startsWith('---') && row[0].trim() !== '')
             .map(row => {
@@ -113,7 +106,7 @@ export async function syncMasterData(urls?: SyncUrls) {
         }
 
         // 5. Insert Menu
-        const menuMap = new Map<string, string>(); // name -> id
+        const menuMap = new Map<string, string>();
         const menuInserts = menuRows
             .filter(row => row[0] && !row[0].startsWith('---') && row[0].trim() !== '')
             .map(row => {
@@ -132,7 +125,7 @@ export async function syncMasterData(urls?: SyncUrls) {
             await db.insert(masterMenu).values(menuInserts).onConflictDoNothing();
         }
 
-        // 6. Insert Resep Mapping (only if both menu and bahan exist)
+        // 6. Insert Resep Mapping
         const resepInserts: { id: string; menu_id: string; bahan_id: string; jumlah_pakai: number; station: string }[] = [];
         for (const row of resepRows) {
             if (!row[0] || String(row[0]).startsWith('---')) continue;
@@ -158,7 +151,7 @@ export async function syncMasterData(urls?: SyncUrls) {
             await db.insert(mappingResep).values(resepInserts).onConflictDoNothing();
         }
 
-        // 7. Seed INVENTORY_STATE for new bahan (don't overwrite existing stock!)
+        // 7. Seed INVENTORY_STATE for new bahan
         const existingStates = await db.select({ id_bahan: inventoryState.id_bahan }).from(inventoryState);
         const existingBahanIds = new Set(existingStates.map(s => s.id_bahan));
         const newBahanForState = bahanInserts.filter(b => !existingBahanIds.has(b.id));
