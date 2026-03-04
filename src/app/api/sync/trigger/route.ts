@@ -8,10 +8,10 @@ export async function POST() {
         if (result.success) {
             return NextResponse.json({ success: true, message: result.message });
         } else {
-            return NextResponse.json({ error: result.error }, { status: 500 });
+            return NextResponse.json({ success: false, error: result.error }, { status: 500 });
         }
     } catch (error: any) {
         console.error("[SYNC_API] Error:", error);
-        return NextResponse.json({ error: error.message || 'Failed to sync' }, { status: 500 });
+        return NextResponse.json({ success: false, error: error.message || 'Failed to sync' }, { status: 500 });
     }
 }

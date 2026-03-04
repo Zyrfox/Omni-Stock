@@ -3,7 +3,6 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { RefreshCw, DownloadCloud, Database, CheckCircle2, CloudCog } from "lucide-react"
-import { syncMasterData } from "@/app/actions/sync"
 import { toast } from "sonner"
 import { useState } from "react"
 
@@ -13,14 +12,16 @@ export default function SettingsPage() {
     const handleSync = async () => {
         setIsSyncing(true);
         try {
-            const result = await syncMasterData();
-            if (result.success) {
+            const res = await fetch("/api/sync/trigger", { method: "POST" });
+            const result = await res.json();
+
+            if (res.ok && result.success) {
                 toast.success("Sync Successful", { description: result.message });
             } else {
-                toast.error("Sync Failed", { description: result.error });
+                toast.error("Sync Failed", { description: result.error || "Unknown error occurred" });
             }
         } catch (err: any) {
-            toast.error("Sync Error", { description: err.message || "Terjadi error saat sync. Cek console untuk detail." });
+            toast.error("Sync Error", { description: err.message || "Gagal menghubungi server untuk sinkronisasi." });
         } finally {
             setIsSyncing(false);
         }
