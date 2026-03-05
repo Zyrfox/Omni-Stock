@@ -17,8 +17,13 @@ import { AppShell } from "@/components/layout/AppShell";
 import { ThemeProvider } from "next-themes"; // Assuming next-themes is used
 
 export const metadata: Metadata = {
-  title: "OMNI-STOCK | Kitchen Pulse",
+  title: "OMNI-STOCK | Easy Going Group",
   description: "F&B Inventory Management and Dashboard",
+  icons: {
+    icon: "/logo.svg",
+    shortcut: "/logo.svg",
+    apple: "/logo.svg",
+  },
 };
 
 export default function RootLayout({
