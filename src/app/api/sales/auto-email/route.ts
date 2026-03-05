@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 import Imap from 'node-imap';
 import { simpleParser } from 'mailparser';
 import * as xlsx from 'xlsx';
-import { processSalesData } from '@/lib/engine';
+import { matchKartuStok } from '@/lib/engine';
 
 export async function POST(req: Request): Promise<NextResponse> {
     const imapConfig = {
@@ -62,8 +62,8 @@ export async function POST(req: Request): Promise<NextResponse> {
                                             traffic_source: row[8] || "Dine-in"
                                         })).filter(r => r.qty_sold > 0);
 
-                                        // Mark as read and process
-                                        await processSalesData(parsedSales as any, "Auto-Email System");
+                                        // Mark as read and process (ephemeral, no DB writes)
+                                        await matchKartuStok(parsedSales as any, "Auto-Email System");
                                     } catch (e) {
                                         console.error("[IMAP] Error parsing or processing attached Excel:", e);
                                     }

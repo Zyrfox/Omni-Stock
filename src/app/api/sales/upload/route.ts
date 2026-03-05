@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
-import { processSalesData } from '@/lib/engine';
+import { matchKartuStok } from '@/lib/engine';
 import * as xlsx from 'xlsx';
 
 // Parse angka format Indonesia (koma sebagai desimal)
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
 
         // Pawoon "Kartu Stok" format:
         // Baris 0-6: Metadata (judul, outlet, tanggal, etc.)
-        // Baris 7: Header: Produk | Kategori | Stok Awal | Stok Masuk | Stok Keluar | Penjualan | Transfer | Penyesuaian | Stok Akhir | Satuan
+        // Baris 7: Header
         // Baris 8+: Data aktual
         const rawData = xlsx.utils.sheet_to_json(sheet, { header: 1 });
         const actualDataRows = rawData.slice(8);
@@ -37,56 +37,39 @@ export async function POST(request: Request) {
         const outletRow = rawData[2] as any[];
         const outletName = outletRow ? String(outletRow[1] || 'Unknown') : 'Unknown';
 
-        // Kolom Kartu Stok Pawoon:
-        // [0]=Produk, [1]=Kategori, [2]=Stok Awal, [3]=Stok Masuk, 
-        // [4]=Stok Keluar, [5]=Penjualan, [6]=Transfer, [7]=Penyesuaian, 
-        // [8]=Stok Akhir, [9]=Satuan
         const parsedItems = actualDataRows
-            .map((row: any) => {
-                const namaBahan = String(row[0] || '').trim();
-                const stokAwal = parseIndonesianNumber(row[2]);
-                const stokMasuk = parseIndonesianNumber(row[3]);
-                const stokKeluar = parseIndonesianNumber(row[4]);
-                const penjualan = parseIndonesianNumber(row[5]);
-                const stokAkhir = parseIndonesianNumber(row[8]);
-                const satuan = String(row[9] || '').trim();
-
-                return {
-                    nama_bahan: namaBahan,
-                    stok_awal: stokAwal,
-                    stok_masuk: stokMasuk,
-                    stok_keluar: stokKeluar,
-                    penjualan: penjualan,
-                    stok_akhir: stokAkhir,       // Stok final hari ini dari Pawoon
-                    satuan: satuan,
-                    kategori: String(row[1] || '').trim(),
-                };
-            })
+            .map((row: any) => ({
+                nama_bahan: String(row[0] || '').trim(),
+                stok_awal: parseIndonesianNumber(row[2]),
+                stok_masuk: parseIndonesianNumber(row[3]),
+                stok_keluar: parseIndonesianNumber(row[4]),
+                penjualan: parseIndonesianNumber(row[5]),
+                stok_akhir: parseIndonesianNumber(row[8]),
+                satuan: String(row[9] || '').trim(),
+                kategori: String(row[1] || '').trim(),
+            }))
             .filter(r => r.nama_bahan !== '' && r.nama_bahan !== 'Produk');
-
-        console.log(`[UPLOAD] File: ${file.name}`);
-        console.log(`[UPLOAD] Outlet: ${outletName}`);
-        console.log(`[UPLOAD] Total baris data: ${actualDataRows.length}, baris valid: ${parsedItems.length}`);
 
         if (parsedItems.length === 0) {
             return NextResponse.json({
                 success: true,
-                processed_rows: 0,
+                matchedItems: [],
+                matchedCount: 0,
+                unmatchedCount: 0,
                 message: 'File berhasil dibaca, namun tidak ada item valid.'
             });
         }
 
-        const result = await processSalesData(parsedItems, `Upload: ${file.name}`, outletName);
+        // Pure in-memory matching — no DB writes
+        const result = await matchKartuStok(parsedItems, outletName);
 
         return NextResponse.json({
             success: true,
             ...result,
-            outlet: outletName,
             message: `Berhasil memproses ${result.matchedCount} item dari ${outletName}. ${result.unmatchedCount} item tidak ditemukan di Master Data.`
         });
-    } catch (error) {
-        console.error("[UPLOAD_API] Error processing file:", error);
-        return NextResponse.json({ error: 'Gagal memproses file' }, { status: 500 });
+    } catch (error: any) {
+        console.error("[UPLOAD_API] Error:", error);
+        return NextResponse.json({ error: error.message || 'Gagal memproses file' }, { status: 500 });
     }
 }
-

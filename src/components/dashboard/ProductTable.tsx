@@ -11,6 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { usePOBuilder } from "@/lib/store/usePOBuilder";
+import { useInventoryStore } from "@/lib/store/useInventoryStore";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -43,36 +44,38 @@ interface SmartStockItem {
 
 export function ProductTable() {
     const [searchTerm, setSearchTerm] = useState("");
-    const [products, setProducts] = useState<SmartStockItem[]>([]);
-    const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     const [draftPOProduct, setDraftPOProduct] = useState<SmartStockItem | null>(null);
     const [draftQty, setDraftQty] = useState("");
 
     const { addPO, approvedPOs, removePO } = usePOBuilder();
+    const { inventoryData, clearInventory } = useInventoryStore();
 
-    async function fetchProducts() {
-        try {
-            const res = await fetch("/api/inventory/po-workbench");
-            if (res.ok) {
-                const data = await res.json();
-                setProducts(data);
-            }
-        } catch (error) {
-            console.error("Failed to fetch product inventory", error);
-        } finally {
-            setLoading(false);
-        }
-    }
+    // Map store data to component's SmartStockItem shape
+    const products: SmartStockItem[] = inventoryData.map(item => ({
+        id_bahan: item.id_bahan,
+        nama_bahan: item.nama_bahan,
+        satuan: item.satuan,
+        current_stock: item.current_stock,
+        batas_minimum: item.batas_minimum,
+        vendor_nama: item.vendor_nama,
+        vendor_id: item.vendor_id ?? '',
+        stock_status: item.stock_status,
+        needs_restock: item.needs_restock,
+        suggested_order_qty: item.suggested_order_qty,
+        harga_satuan: item.harga_satuan,
+        kontak_wa: item.kontak_wa ?? undefined,
+        info_pembayaran: undefined,
+    }));
 
-    const handleClearInventory = async () => {
-        setProducts([]);
+    const handleClearInventory = () => {
+        clearInventory();
         toast.success("Tampilan tabel berhasil dibersihkan.", {
-            description: "Peringatan: Data di database tidak terhapus."
+            description: "Upload file baru untuk menampilkan data stok terkini."
         });
     };
 
-    useEffect(() => { fetchProducts(); }, []);
+
 
     const handleRancangClick = (product: SmartStockItem) => {
         setDraftPOProduct(product);
@@ -188,8 +191,8 @@ export function ProductTable() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {loading ? (
-                                    <TableRow><TableCell colSpan={9} className="h-24 text-center text-muted-foreground">Memuat data stok...</TableCell></TableRow>
+                                {products.length === 0 ? (
+                                    <TableRow><TableCell colSpan={9} className="h-24 text-center text-muted-foreground">Upload Kartu Stok untuk menampilkan data.</TableCell></TableRow>
                                 ) : paginatedProducts.length === 0 ? (
                                     <TableRow><TableCell colSpan={9} className="h-24 text-center text-muted-foreground">Tidak ada data.</TableCell></TableRow>
                                 ) : (
@@ -238,7 +241,7 @@ export function ProductTable() {
                     </div>
 
                     {/* Pagination */}
-                    {!loading && filteredProducts.length > ITEMS_PER_PAGE && (
+                    {filteredProducts.length > ITEMS_PER_PAGE && (
                         <div className="flex items-center justify-between pt-4 px-2">
                             <p className="text-sm text-muted-foreground">
                                 Menampilkan {startIndex + 1}–{Math.min(startIndex + ITEMS_PER_PAGE, filteredProducts.length)} dari {filteredProducts.length} item

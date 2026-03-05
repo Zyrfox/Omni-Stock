@@ -1,7 +1,5 @@
 import { db } from "@/db";
-import { inventoryState, activityLog, logPO, uploadBatches, inventoryLogs, uploadBatchDetails, masterBahan, masterVendor } from "@/db/schema";
-import { sendTelegramAlert } from "./alert";
-import { eq, inArray } from "drizzle-orm";
+import { masterBahan, masterVendor } from "@/db/schema";
 
 export interface KartuStokRow {
     nama_bahan: string;
@@ -9,134 +7,90 @@ export interface KartuStokRow {
     stok_masuk: number;
     stok_keluar: number;
     penjualan: number;
-    stok_akhir: number;     // Stok final dari Pawoon (SOURCE OF TRUTH)
+    stok_akhir: number;
     satuan: string;
     kategori: string;
 }
 
-export async function processSalesData(items: KartuStokRow[], user = "System", outletName = "Unknown") {
-    console.log(`[ENGINE] Processing ${items.length} Kartu Stok rows...`);
+export interface MatchedInventoryItem {
+    id_bahan: string;
+    nama_bahan: string;
+    satuan: string;
+    current_stock: number;
+    batas_minimum: number;
+    harga_satuan: number;
+    vendor_id: string | null;
+    vendor_nama: string;
+    kontak_wa: string | null;
+    stock_status: "ok" | "low" | "out";
+    needs_restock: boolean;
+    suggested_order_qty: number;
+}
 
-    // ── 1. Fetch master data from Neon Postgres (written by Sync) ─────────────
-    const bahanRows = await db.select().from(masterBahan);
-    console.log(`[ENGINE] Loaded ${bahanRows.length} bahan from Neon Postgres masterBahan table.`);
+export async function matchKartuStok(items: KartuStokRow[], outletName = "Unknown"): Promise<{
+    matchedItems: MatchedInventoryItem[];
+    matchedCount: number;
+    unmatchedCount: number;
+    unmatchedNames: string[];
+    outlet: string;
+}> {
+    console.log(`[ENGINE] Matching ${items.length} Kartu Stok rows from Neon masterBahan...`);
+
+    // ── 1. Fetch master bahan + vendors from Neon ──────────────────────────────
+    const [bahanRows, vendorRows] = await Promise.all([
+        db.select().from(masterBahan),
+        db.select().from(masterVendor),
+    ]);
 
     if (bahanRows.length === 0) {
-        throw new Error("masterBahan tabel kosong! Jalankan 'Sync Master Data' terlebih dahulu dari halaman Settings.");
+        throw new Error("Tabel masterBahan kosong! Jalankan 'Sync Master Data' dari Settings terlebih dahulu.");
     }
 
-    // Build a normalized lookup map: lowercase+trim name → row
-    const bahanMap = new Map<string, typeof bahanRows[0]>();
-    for (const b of bahanRows) {
-        bahanMap.set(b.nama_bahan.trim().toLowerCase(), b);
-    }
+    // Build lookup maps (normalized)
+    const bahanMap = new Map(bahanRows.map(b => [b.nama_bahan.trim().toLowerCase(), b]));
+    const vendorMap = new Map(vendorRows.map(v => [v.id, v]));
 
-    const lowStockAlerts: { nama_bahan: string; current_stock: number; minimum: number; vendor_id: string }[] = [];
-
-    // ── 2. Create upload batch ────────────────────────────────────────────────
-    const batchId = crypto.randomUUID();
-    await db.insert(uploadBatches).values({ id: batchId, outlet_id: outletName, status: "processed" });
-
-    // ── 3. Classify items in memory (no extra DB calls per row) ──────────────
-    const batchDetails: { id: string; batch_id: string; nama_bahan_raw: string; is_matched: boolean }[] = [];
-    const inventoryUpdates: { id_bahan: string; current_stock: number }[] = [];
-    const inventoryLogsToInsert: { id: string; batch_id: string; id_bahan: string; current_stock: number; min_stock: number }[] = [];
-
-    let matchedCount = 0;
-    let unmatchedCount = 0;
+    // ── 2. Match in memory ─────────────────────────────────────────────────────
+    const matchedItems: MatchedInventoryItem[] = [];
+    const unmatchedNames: string[] = [];
 
     for (const item of items) {
-        // Bulletproof normalization before comparison
-        const normalizedName = item.nama_bahan.trim().toLowerCase();
-        const matchedBahan = bahanMap.get(normalizedName);
+        const key = item.nama_bahan.trim().toLowerCase();
+        const bahan = bahanMap.get(key);
 
-        if (!matchedBahan) {
-            console.warn(`[ENGINE] Unmatched: "${item.nama_bahan}" (normalized: "${normalizedName}")`);
-            unmatchedCount++;
-            batchDetails.push({ id: crypto.randomUUID(), batch_id: batchId, nama_bahan_raw: item.nama_bahan, is_matched: false });
+        if (!bahan) {
+            unmatchedNames.push(item.nama_bahan);
             continue;
         }
 
-        matchedCount++;
-        const id_bahan = matchedBahan.id;  // PK in masterBahan is `id`
-        const newStock = item.stok_akhir;
-        const minStock = matchedBahan.batas_minimum ?? 0;
+        const vendor = bahan.vendor_id ? vendorMap.get(bahan.vendor_id) : null;
+        const current_stock = item.stok_akhir;
+        const min = bahan.batas_minimum ?? 0;
+        const stock_status: "ok" | "low" | "out" = current_stock <= 0 ? "out" : current_stock <= min ? "low" : "ok";
 
-        batchDetails.push({ id: crypto.randomUUID(), batch_id: batchId, nama_bahan_raw: item.nama_bahan, is_matched: true });
-        inventoryUpdates.push({ id_bahan, current_stock: newStock });
-        inventoryLogsToInsert.push({ id: crypto.randomUUID(), batch_id: batchId, id_bahan, current_stock: newStock, min_stock: minStock });
-
-        if (newStock <= minStock) {
-            lowStockAlerts.push({
-                nama_bahan: matchedBahan.nama_bahan,
-                current_stock: newStock,
-                minimum: minStock,
-                vendor_id: matchedBahan.vendor_id || 'N/A'
-            });
-        }
-    }
-
-    // ── 4. Batch insert uploadBatchDetails ────────────────────────────────────
-    if (batchDetails.length > 0) {
-        await db.insert(uploadBatchDetails).values(batchDetails);
-    }
-
-    // ── 5. Bulk upsert inventoryState ─────────────────────────────────────────
-    if (inventoryUpdates.length > 0) {
-        const ids = inventoryUpdates.map(u => u.id_bahan);
-        const existingRows = await db.select({ id_bahan: inventoryState.id_bahan }).from(inventoryState).where(inArray(inventoryState.id_bahan, ids));
-        const existingIds = new Set(existingRows.map(r => r.id_bahan));
-
-        const toInsert = inventoryUpdates.filter(u => !existingIds.has(u.id_bahan)).map(u => ({
-            id: crypto.randomUUID(), id_bahan: u.id_bahan, current_stock: u.current_stock, last_updated: new Date()
-        }));
-        const toUpdate = inventoryUpdates.filter(u => existingIds.has(u.id_bahan));
-
-        if (toInsert.length > 0) {
-            await db.insert(inventoryState).values(toInsert).onConflictDoNothing();
-        }
-
-        if (toUpdate.length > 0) {
-            await Promise.all(toUpdate.map(u =>
-                db.update(inventoryState)
-                    .set({ current_stock: u.current_stock, last_updated: new Date() })
-                    .where(eq(inventoryState.id_bahan, u.id_bahan))
-            ));
-        }
-    }
-
-    // ── 6. Batch insert inventoryLogs ─────────────────────────────────────────
-    if (inventoryLogsToInsert.length > 0) {
-        await db.insert(inventoryLogs).values(inventoryLogsToInsert);
-    }
-
-    // ── 7. Activity log ───────────────────────────────────────────────────────
-    await db.insert(activityLog).values({
-        id: crypto.randomUUID(),
-        user,
-        action: `Processed ${items.length} Kartu Stok rows. Matched: ${matchedCount}, Unmatched: ${unmatchedCount}.`,
-    });
-
-    // ── 8. Draft POs for low stock items ─────────────────────────────────────
-    if (lowStockAlerts.length > 0) {
-        const poRows = lowStockAlerts.map(alert => {
-            const mb = bahanRows.find(b => b.nama_bahan === alert.nama_bahan);
-            return mb ? { id: crypto.randomUUID(), bahan_id: mb.id, vendor_id: alert.vendor_id || 'UNKNOWN', status: 'draft' } : null;
-        }).filter(Boolean) as { id: string; bahan_id: string; vendor_id: string; status: string }[];
-
-        if (poRows.length > 0) {
-            await db.insert(logPO).values(poRows).onConflictDoNothing();
-        }
-
-        await db.insert(activityLog).values({
-            id: crypto.randomUUID(),
-            user: "System",
-            action: `Generated ${lowStockAlerts.length} Draft PO(s) for low-stock items.`,
+        matchedItems.push({
+            id_bahan: bahan.id,
+            nama_bahan: bahan.nama_bahan,
+            satuan: item.satuan || bahan.satuan_dasar,
+            current_stock,
+            batas_minimum: min,
+            harga_satuan: bahan.harga_satuan ?? 0,
+            vendor_id: bahan.vendor_id ?? null,
+            vendor_nama: vendor?.nama_vendor ?? "—",
+            kontak_wa: vendor?.kontak_wa ?? null,
+            stock_status,
+            needs_restock: stock_status !== "ok",
+            suggested_order_qty: stock_status !== "ok" ? Math.max(0, min - current_stock) : 0,
         });
-
-        await sendTelegramAlert(lowStockAlerts);
     }
 
-    console.log(`[ENGINE] Done. Matched: ${matchedCount}, Unmatched: ${unmatchedCount}, Low-stock: ${lowStockAlerts.length}`);
-    return { matchedCount, unmatchedCount, lowStockAlerts: lowStockAlerts.length };
+    console.log(`[ENGINE] Done. Matched: ${matchedItems.length}, Unmatched: ${unmatchedNames.length}`);
+
+    return {
+        matchedItems,
+        matchedCount: matchedItems.length,
+        unmatchedCount: unmatchedNames.length,
+        unmatchedNames,
+        outlet: outletName,
+    };
 }

@@ -5,7 +5,7 @@ import { UploadCloud, FileSpreadsheet, X, CheckCircle2, AlertCircle, Loader2 } f
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
+import { useInventoryStore } from "@/lib/store/useInventoryStore";
 
 export function DropzoneUploader() {
     const [isDragging, setIsDragging] = useState(false);
@@ -15,7 +15,7 @@ export function DropzoneUploader() {
     const [statusMessage, setStatusMessage] = useState("");
 
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const router = useRouter();
+    const { setInventoryData } = useInventoryStore();
 
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault();
@@ -98,16 +98,19 @@ export function DropzoneUploader() {
 
             if (response.ok && result.success) {
                 setUploadStatus("success");
-                setStatusMessage(`Successfully processed ${result.processed_rows} sales records.`);
-                toast.success("Upload Successful", {
-                    description: `Processed ${result.processed_rows} sales and updated inventory.`,
+                setStatusMessage(`Berhasil memproses ${result.matchedCount} / ${result.matchedCount + result.unmatchedCount} item dari ${result.outlet}.`);
+
+                // Store matched inventory data in Zustand (client-side only, ephemeral)
+                if (result.matchedItems && result.matchedItems.length > 0) {
+                    setInventoryData(result.matchedItems, result.outlet ?? '');
+                }
+
+                toast.success("Upload Berhasil!", {
+                    description: result.message,
                 });
 
-                // Refresh dashboard data
-                setTimeout(() => {
-                    handleRemoveFile();
-                    router.refresh();
-                }, 3000);
+                // Reset uploader after 3s
+                setTimeout(() => handleRemoveFile(), 3000);
             } else {
                 setUploadStatus("error");
                 setStatusMessage(result.error || "Failed to process the uploaded file.");
