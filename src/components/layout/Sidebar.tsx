@@ -16,7 +16,6 @@ import {
     Settings,
     CircleHelp,
     LogOut,
-    Package2,
     Menu,
     ChevronLeft,
     ClipboardList,
@@ -67,10 +66,11 @@ export function Sidebar({ isOpen, toggle }: SidebarProps) {
             {/* Header */}
             <div className="flex h-16 shrink-0 items-center justify-between px-4 border-b border-border">
                 <div className={cn("flex items-center gap-2 overflow-hidden transition-all duration-300", isOpen ? "w-auto opacity-100" : "w-0 opacity-0")}>
-                    <div className="bg-primary text-primary-foreground p-1.5 rounded-lg">
-                        <Package2 className="h-5 w-5" />
-                    </div>
-                    <span className="font-bold text-lg tracking-tight whitespace-nowrap">OMNI-STOCK</span>
+                    <img
+                        src="/logo.svg"
+                        alt="Easy Going Group Logo"
+                        className="h-9 w-auto object-contain"
+                    />
                 </div>
                 <button onClick={toggle} className="p-2 hover:bg-secondary rounded-lg transition-colors text-sidebar-foreground" aria-label="Toggle Sidebar">
                     {isOpen ? <ChevronLeft className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
