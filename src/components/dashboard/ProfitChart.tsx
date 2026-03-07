@@ -13,7 +13,7 @@ const formatIDR = (value: number) => {
 };
 
 export function ProfitChart() {
-    const [data, setData] = useState<any[]>([]);
+    const [data, setData] = useState<{ name: string, value: number, color: string, percentage: number }[]>([]);
 
     useEffect(() => {
         async function fetchProfit() {
@@ -23,8 +23,8 @@ export function ProfitChart() {
                     const result = await res.json();
                     if (result.profits) {
                         // Calculate total to derive percentage
-                        const total = result.profits.reduce((acc: number, curr: any) => acc + curr.value, 0);
-                        const mapped = result.profits.map((p: any) => ({
+                        const total = result.profits.reduce((acc: number, curr: { value: number }) => acc + curr.value, 0);
+                        const mapped = result.profits.map((p: { name: string, value: number, color: string }) => ({
                             ...p,
                             percentage: total > 0 ? Math.round((p.value / total) * 100) : 0
                         }));
@@ -62,7 +62,7 @@ export function ProfitChart() {
                                 ))}
                             </Pie>
                             <Tooltip
-                                formatter={(value: any) => formatIDR(value)}
+                                formatter={(value: number | undefined) => formatIDR(value || 0)}
                                 contentStyle={{
                                     backgroundColor: "hsl(var(--card))",
                                     borderRadius: "8px",

@@ -1,0 +1,23 @@
+
+> omni-stock@0.1.0 build
+> next build
+
+Γû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env
+
+  Creating an optimized production build ...
+Γ£ô Compiled successfully in 10.4s
+  Running TypeScript ...
+Failed to compile.
+
+./src/app/api/inventory/smart-stock/route.ts:43:30
+Type error: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+
+  41 |         if (masterData?.bahan) {
+  42 |             for (const b of masterData.bahan) {
+> 43 |                 bahanMap.set(b.id_bahan, b as Record<string, string | null | undefined>);
+     |                              ^
+  44 |             }
+  45 |         }
+  46 |
+Next.js build worker exited with code: 1 and signal: null

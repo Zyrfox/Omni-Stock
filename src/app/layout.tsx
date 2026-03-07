@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 import { Toaster } from "@/components/ui/sonner";
-import { AppShell } from "@/components/layout/AppShell";
-import { ThemeProvider } from "next-themes"; // Assuming next-themes is used
+import { ConditionalLayout } from "@/components/layout/ConditionalLayout";
+import { ThemeProvider } from "next-themes";
 
 export const metadata: Metadata = {
   title: "OMNI-STOCK | Easy Going Group",
@@ -37,10 +37,11 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <AppShell>{children}</AppShell>
+          <ConditionalLayout>{children}</ConditionalLayout>
           <Toaster />
         </ThemeProvider>
       </body>
     </html>
   );
 }
+

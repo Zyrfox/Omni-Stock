@@ -4,8 +4,9 @@ import { Badge } from "@/components/ui/badge"
 import { db } from "@/db"
 import { uploadBatches, uploadBatchDetails } from "@/db/schema"
 import { desc } from "drizzle-orm"
-import { CheckCircle2, AlertCircle, Upload } from "lucide-react"
+import { CheckCircle2, AlertCircle, Upload, Calendar } from "lucide-react"
 import { UploadDetailsModal } from "@/components/orders/UploadDetailsModal"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 
 export default async function OrdersPage() {
     const batches = await db.select().from(uploadBatches).orderBy(desc(uploadBatches.created_at));
@@ -13,6 +14,16 @@ export default async function OrdersPage() {
 
     const totalMatched = allDetails.filter(d => d.is_matched).length;
     const totalUnmatched = allDetails.filter(d => !d.is_matched).length;
+
+    // Grouping Batches by Date
+    const groupedBatches = batches.reduce((acc, b) => {
+        const dateStr = b.created_at ? new Date(b.created_at).toLocaleDateString('id-ID', {
+            day: 'numeric', month: 'long', year: 'numeric'
+        }) : 'Unknown Date';
+        if (!acc[dateStr]) acc[dateStr] = [];
+        acc[dateStr].push(b);
+        return acc;
+    }, {} as Record<string, typeof batches>);
 
     return (
         <div className="flex flex-col gap-6">
@@ -64,78 +75,96 @@ export default async function OrdersPage() {
                 </Card>
             </div>
 
-            {/* Reports Table */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Physical Upload Logs</CardTitle>
-                    <CardDescription>Menampilkan kapan update master stock dilakukan pada gudang secara spesifik.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    {batches.length > 0 ? (
-                        <div className="overflow-x-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="min-w-[100px]">Batch ID</TableHead>
-                                        <TableHead className="min-w-[140px]">Outlet</TableHead>
-                                        <TableHead className="min-w-[100px]">Status</TableHead>
-                                        <TableHead className="text-center min-w-[80px]">Matched</TableHead>
-                                        <TableHead className="text-center min-w-[80px]">Unmatched</TableHead>
-                                        <TableHead className="text-right min-w-[160px]">Waktu Upload</TableHead>
-                                        <TableHead className="text-right min-w-[120px]">Aksi</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {batches.map(b => {
-                                        const relatedDetails = allDetails.filter(d => d.batch_id === b.id);
-                                        const matchedCount = relatedDetails.filter(d => d.is_matched).length;
-                                        const unmatchedCount = relatedDetails.filter(d => !d.is_matched).length;
+            {/* Reports Grouped by Date */}
+            <div className="space-y-4">
+                {batches.length > 0 ? (
+                    <Accordion type="multiple" className="w-full space-y-4">
+                        {Object.entries(groupedBatches).map(([dateLabel, dayBatches]) => (
+                            <AccordionItem value={dateLabel} key={dateLabel} className="border bg-card text-card-foreground rounded-lg overflow-hidden shadow-sm px-2">
+                                <AccordionTrigger className="hover:no-underline px-4 py-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="bg-primary/10 p-2 rounded-md">
+                                            <Calendar className="h-5 w-5 text-primary" />
+                                        </div>
+                                        <div className="flex flex-col items-start">
+                                            <span className="font-semibold text-lg">{dateLabel}</span>
+                                            <span className="text-sm font-normal text-muted-foreground">{dayBatches.length} Upload{dayBatches.length > 1 ? 's' : ''} Record</span>
+                                        </div>
+                                    </div>
+                                </AccordionTrigger>
+                                <AccordionContent className="pt-2 px-4 pb-4">
+                                    <div className="overflow-x-auto border rounded-md">
+                                        <Table>
+                                            <TableHeader className="bg-secondary/30">
+                                                <TableRow>
+                                                    <TableHead className="min-w-[100px]">Batch ID</TableHead>
+                                                    <TableHead className="min-w-[140px]">Outlet</TableHead>
+                                                    <TableHead className="min-w-[100px]">Status</TableHead>
+                                                    <TableHead className="text-center min-w-[80px]">Matched</TableHead>
+                                                    <TableHead className="text-center min-w-[80px]">Unmatched</TableHead>
+                                                    <TableHead className="text-right min-w-[160px]">PIC (User)</TableHead>
+                                                    <TableHead className="text-right min-w-[120px]">Waktu</TableHead>
+                                                    <TableHead className="text-right min-w-[120px]">Aksi</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {dayBatches.map(b => {
+                                                    const relatedDetails = allDetails.filter(d => d.batch_id === b.id);
+                                                    const matchedCount = relatedDetails.filter(d => d.is_matched).length;
+                                                    const unmatchedCount = relatedDetails.filter(d => !d.is_matched).length;
 
-                                        const uploadDate = b.created_at
-                                            ? new Date(b.created_at).toLocaleString('id-ID', {
-                                                day: '2-digit', month: 'short', year: 'numeric',
-                                                hour: '2-digit', minute: '2-digit'
-                                            })
-                                            : '-';
+                                                    const uploadTime = b.created_at
+                                                        ? new Date(b.created_at).toLocaleTimeString('id-ID', {
+                                                            hour: '2-digit', minute: '2-digit'
+                                                        })
+                                                        : '-';
 
-                                        return (
-                                            <TableRow key={b.id}>
-                                                <TableCell className="font-mono text-xs select-all uppercase">{b.id.split('-')[0]}</TableCell>
-                                                <TableCell>
-                                                    <Badge variant="outline" className="bg-secondary/50 font-semibold">{b.outlet_id}</Badge>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 border-0">
-                                                        <CheckCircle2 className="h-3 w-3 mr-1" /> Sukses
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell className="text-center">
-                                                    <span className="text-emerald-600 font-semibold">{matchedCount}</span>
-                                                </TableCell>
-                                                <TableCell className="text-center">
-                                                    <span className={unmatchedCount > 0 ? "text-red-500 font-bold" : "text-slate-400 font-medium"}>
-                                                        {unmatchedCount}
-                                                    </span>
-                                                </TableCell>
-                                                <TableCell className="text-right text-slate-500 text-sm font-medium">{uploadDate}</TableCell>
-                                                <TableCell className="text-right">
-                                                    <UploadDetailsModal batchId={b.id} details={relatedDetails} />
-                                                </TableCell>
-                                            </TableRow>
-                                        );
-                                    })}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    ) : (
-                        <div className="text-sm text-slate-500 flex flex-col h-40 items-center justify-center border rounded-md border-dashed bg-secondary/20">
-                            <Upload className="h-8 w-8 text-muted-foreground mb-3 opacity-50" />
-                            <p>Belum ada upload kartu stok di sistem.</p>
-                            <p className="text-xs max-w-sm text-center mt-1">Lakukan drag and drop Kartu Stok melalui Command Center Dashboard.</p>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+                                                    return (
+                                                        <TableRow key={b.id} className="hover:bg-secondary/20">
+                                                            <TableCell className="font-mono text-xs select-all uppercase">{b.id.split('-')[0]}</TableCell>
+                                                            <TableCell>
+                                                                <Badge variant="outline" className="bg-secondary/50 font-semibold">{b.outlet_id}</Badge>
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 border-0">
+                                                                    <CheckCircle2 className="h-3 w-3 mr-1" /> Sukses
+                                                                </Badge>
+                                                            </TableCell>
+                                                            <TableCell className="text-center">
+                                                                <span className="text-emerald-600 font-semibold">{matchedCount}</span>
+                                                            </TableCell>
+                                                            <TableCell className="text-center">
+                                                                <span className={unmatchedCount > 0 ? "text-red-500 font-bold" : "text-slate-400 font-medium"}>
+                                                                    {unmatchedCount}
+                                                                </span>
+                                                            </TableCell>
+                                                            <TableCell className="text-right font-medium">{b.created_by || 'System'}</TableCell>
+                                                            <TableCell className="text-right text-slate-500 text-sm font-medium">{uploadTime}</TableCell>
+                                                            <TableCell className="text-right">
+                                                                <UploadDetailsModal batchId={b.id} details={relatedDetails} />
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    );
+                                                })}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                </AccordionContent>
+                            </AccordionItem>
+                        ))}
+                    </Accordion>
+                ) : (
+                    <Card>
+                        <CardContent className="pt-6">
+                            <div className="text-sm text-slate-500 flex flex-col h-40 items-center justify-center border rounded-md border-dashed bg-secondary/20">
+                                <Upload className="h-8 w-8 text-muted-foreground mb-3 opacity-50" />
+                                <p>Belum ada upload kartu stok di sistem.</p>
+                                <p className="text-xs max-w-sm text-center mt-1">Lakukan drag and drop Kartu Stok melalui Command Center Dashboard.</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+            </div>
         </div>
     )
 }

@@ -1,5 +1,5 @@
-import { pgTable, text, real, integer, timestamp, boolean } from "drizzle-orm/pg-core";
-import { sql } from "drizzle-orm";
+import { pgTable, text, real, integer, timestamp, boolean, unique } from "drizzle-orm/pg-core";
+
 
 export const masterVendor = pgTable("MASTER_VENDOR", {
     id: text("id").primaryKey(),
@@ -14,6 +14,8 @@ export const masterBahan = pgTable("MASTER_BAHAN", {
     satuan_dasar: text("satuan_dasar").notNull(),
     batas_minimum: real("batas_minimum").notNull(),
     harga_satuan: real("harga_satuan").default(0),
+    kemasan_beli: text("kemasan_beli").default("Pcs"),
+    isi_kemasan: real("isi_kemasan").default(1),
     vendor_id: text("vendor_id").references(() => masterVendor.id),
     kategori_khusus: text("kategori_khusus"), // To bypass Consignment
 });
@@ -22,6 +24,7 @@ export const masterMenu = pgTable("MASTER_MENU", {
     id: text("id").primaryKey(),
     nama_menu: text("nama_menu").notNull(),
     outlet_id: text("outlet_id").notNull(),
+    kategori: text("kategori"),
 });
 
 export const mappingResep = pgTable("MAPPING_RESEP", {
@@ -29,6 +32,7 @@ export const mappingResep = pgTable("MAPPING_RESEP", {
     menu_id: text("menu_id").references(() => masterMenu.id).notNull(),
     bahan_id: text("bahan_id").references(() => masterBahan.id).notNull(),
     jumlah_pakai: real("jumlah_pakai").notNull(),
+    satuan: text("satuan"), // PRD V6.10: Form binding explicit unit
     station: text("station"), // Kitchen or Bar
 });
 
@@ -54,6 +58,7 @@ export const logPO = pgTable("LOG_PO", {
     vendor_id: text("vendor_id").references(() => masterVendor.id).notNull(),
     status: text("status").notNull(), // 'draft' / 'approved'
     tanggal_po: timestamp("tanggal_po").defaultNow(),
+    created_by: text("created_by"),  // PRD V5.5: Audit Trail — who approved this PO
 });
 
 export const inventoryState = pgTable("INVENTORY_STATE", {
@@ -99,9 +104,14 @@ export const appSettings = pgTable("APP_SETTINGS", {
 export const uploadBatches = pgTable("UPLOAD_BATCHES", {
     id: text("id").primaryKey(), // Using timestamp logic or UIID
     created_at: timestamp("created_at").notNull().defaultNow(),
+    date: text("date").notNull().default(""), // PRD V6.1: YYYY-MM-DD for unique constraints
     outlet_id: text("outlet_id").notNull(),
     status: text("status").notNull(), // e.g. 'processed'
-});
+    created_by: text("created_by"), // PRD V6.0: PIC Name
+    archived: boolean("archived").notNull().default(false),
+}, (t) => [
+    unique().on(t.date, t.outlet_id)
+]);
 
 export const inventoryLogs = pgTable("INVENTORY_LOGS", {
     id: text("id").primaryKey(),
@@ -109,7 +119,9 @@ export const inventoryLogs = pgTable("INVENTORY_LOGS", {
     id_bahan: text("id_bahan").notNull(),
     current_stock: real("current_stock").notNull(),
     min_stock: real("min_stock").notNull(), // Snapshot
-});
+}, (t) => [
+    unique().on(t.batch_id, t.id_bahan)
+]);
 
 export const uploadBatchDetails = pgTable("UPLOAD_BATCH_DETAILS", {
     id: text("id").primaryKey(),
@@ -125,6 +137,7 @@ export const invoices = pgTable("INVOICES", {
     total_biaya: real("total_biaya").notNull(),
     status: text("status").notNull().default("UNPAID"), // PAID / UNPAID
     created_at: timestamp("created_at").notNull().defaultNow(),
+    created_by: text("created_by"),  // PRD V5.5: Audit Trail — who generated this invoice
 });
 
 export const invoiceItems = pgTable("INVOICE_ITEMS", {
@@ -134,4 +147,14 @@ export const invoiceItems = pgTable("INVOICE_ITEMS", {
     nama_bahan: text("nama_bahan").notNull(),
     qty: real("qty").notNull(),
     harga_satuan: real("harga_satuan").notNull(),
+});
+
+// PRD V5.3: Hybrid Auth — Email login, Username display, Role-based access
+export const users = pgTable("USERS", {
+    id: text("id").primaryKey(),                              // CUID generated at runtime
+    email: text("email").notNull().unique(),                  // Used ONLY for login
+    username: text("username").notNull().unique(),             // Used ONLY for display in UI
+    password: text("password").notNull(),                     // bcryptjs hash
+    role: text("role").notNull().default("STAFF"),            // STAFF | SPV | MANAGER
+    created_at: timestamp("created_at").notNull().defaultNow(),
 });

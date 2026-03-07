@@ -41,7 +41,7 @@ export async function POST(req: Request): Promise<NextResponse> {
 
                     fetch.on('message', (msg) => {
                         msg.on('body', (stream) => {
-                            simpleParser(stream as any, async (err, parsed) => {
+                            simpleParser(stream as import('stream').Readable, async (err, parsed) => {
                                 if (err) return;
 
                                 const attachment = parsed.attachments.find(a => a.filename?.endsWith('.xls') || a.filename?.endsWith('.xlsx'));
@@ -55,16 +55,29 @@ export async function POST(req: Request): Promise<NextResponse> {
                                         const rawData = xlsx.utils.sheet_to_json(sheet, { header: 1 });
                                         const actualDataRows = rawData.slice(7); // Skip 7 rows
 
-                                        const parsedSales = actualDataRows.map((row: any) => ({
-                                            nama_menu: row[0] || "Unknown",
-                                            qty_sold: parseInt(row[4] || 0),
-                                            harga_jual: parseFloat(row[5] || 0),
-                                            traffic_source: row[8] || "Dine-in"
-                                        })).filter(r => r.qty_sold > 0);
+                                        const parsedSales = actualDataRows.map((row: unknown) => {
+                                            const r = row as string[];
+                                            return {
+                                                nama_menu: r[0] || "Unknown",
+                                                qty_sold: parseInt(r[4] || "0", 10),
+                                                harga_jual: parseFloat(r[5] || "0"),
+                                                traffic_source: r[8] || "Dine-in"
+                                            };
+                                        }).filter(r => r.qty_sold > 0);
 
                                         // Mark as read and process (ephemeral, no DB writes)
-                                        await matchKartuStok(parsedSales as any, "Auto-Email System");
-                                    } catch (e) {
+                                        const mappedForEngine = parsedSales.map(s => ({
+                                            nama_bahan: s.nama_menu,
+                                            stok_awal: 0,
+                                            stok_masuk: 0,
+                                            stok_keluar: 0,
+                                            penjualan: s.qty_sold,
+                                            stok_akhir: 0,
+                                            satuan: "",
+                                            kategori: ""
+                                        }));
+                                        await matchKartuStok(mappedForEngine, "Auto-Email System");
+                                    } catch (e: unknown) {
                                         console.error("[IMAP] Error parsing or processing attached Excel:", e);
                                     }
                                 }
@@ -87,7 +100,7 @@ export async function POST(req: Request): Promise<NextResponse> {
             });
         });
 
-        imap.once('error', (err: any) => {
+        imap.once('error', (err: unknown) => {
             console.error("[IMAP] connection error", err);
             resolve(NextResponse.json({ error: 'IMAP Connection Error' }, { status: 500 }));
         });

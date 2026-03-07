@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Search, Filter, ChevronLeft, ChevronRight, X, AlertTriangle, ShoppingCart, Check, Trash2, AlertCircle } from "lucide-react";
+import { Search, Filter, ChevronLeft, ChevronRight, X, AlertTriangle, ShoppingCart, Check, Trash2, AlertCircle, Sparkles, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { usePOBuilder } from "@/lib/store/usePOBuilder";
 import { useInventoryStore } from "@/lib/store/useInventoryStore";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -38,15 +40,22 @@ interface SmartStockItem {
     needs_restock: boolean;
     suggested_order_qty?: number;
     harga_satuan: number;
+    kemasan_beli: string;
+    isi_kemasan: number;
     kontak_wa?: string;
     info_pembayaran?: string;
 }
 
 export function ProductTable() {
     const [searchTerm, setSearchTerm] = useState("");
+    const [statusFilter, setStatusFilter] = useState("ALL");
+    const [vendorFilter, setVendorFilter] = useState("ALL");
     const [currentPage, setCurrentPage] = useState(1);
     const [draftPOProduct, setDraftPOProduct] = useState<SmartStockItem | null>(null);
     const [draftQty, setDraftQty] = useState("");
+    const [draftBudget, setDraftBudget] = useState("");
+    const [estimatedQtyFromAI, setEstimatedQtyFromAI] = useState<number | null>(null);
+    const [isAskingAI, setIsAskingAI] = useState(false);
 
     const { addPO, approvedPOs, removePO } = usePOBuilder();
     const { inventoryData, clearInventory } = useInventoryStore();
@@ -64,25 +73,71 @@ export function ProductTable() {
         needs_restock: item.needs_restock,
         suggested_order_qty: item.suggested_order_qty,
         harga_satuan: item.harga_satuan,
+        kemasan_beli: item.kemasan_beli,
+        isi_kemasan: item.isi_kemasan,
         kontak_wa: item.kontak_wa ?? undefined,
         info_pembayaran: undefined,
     }));
 
-    const handleClearInventory = () => {
-        clearInventory();
-        toast.success("Tampilan tabel berhasil dibersihkan.", {
-            description: "Upload file baru untuk menampilkan data stok terkini."
-        });
+    const handleClearInventory = async () => {
+        try {
+            const res = await fetch('/api/inventory/clear', { method: 'POST' });
+            if (res.ok) {
+                clearInventory();
+                toast.success("Tampilan tabel & record berhasil dibersihkan.", {
+                    description: "Status record stok hari ini di-set archived."
+                });
+            } else {
+                toast.error("Gagal mengarsipkan data stok.");
+            }
+        } catch (error) {
+            toast.error("Terjadi kesalahan jaringan.");
+        }
     };
+
+    const uniqueVendors = Array.from(new Set(products.map(p => p.vendor_nama))).filter(Boolean);
 
 
 
     const handleRancangClick = (product: SmartStockItem) => {
         setDraftPOProduct(product);
-        const qtyToOrder = product.current_stock < product.batas_minimum
+        const unitsNeeded = product.current_stock < product.batas_minimum
             ? (product.batas_minimum - product.current_stock)
             : 0;
-        setDraftQty(String(qtyToOrder > 0 ? qtyToOrder : 10));
+        const qtyToOrder = unitsNeeded > 0 ? Math.ceil(unitsNeeded / (product.isi_kemasan || 1)) : 10;
+        setDraftQty(String(qtyToOrder));
+        setDraftBudget("");
+        setEstimatedQtyFromAI(null);
+    };
+
+    const handleAskAI = async () => {
+        if (!draftBudget || parseFloat(draftBudget) <= 0) {
+            toast.error("Masukkan budget (Rp) terlebih dahulu.");
+            return;
+        }
+        setIsAskingAI(true);
+        try {
+            const res = await fetch("/api/market-price", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    bahan_nama: draftPOProduct!.nama_bahan,
+                    budget: parseFloat(draftBudget)
+                })
+            });
+            const data = await res.json();
+            if (data.success && data.estimated_qty) {
+                setEstimatedQtyFromAI(data.estimated_qty);
+                setDraftQty(String(data.estimated_qty));
+                toast.success("Estimasi Qty berhasil didapatkan dari AI!");
+            } else {
+                toast.error(data.error || "Gagal mendapatkan estimasi.");
+            }
+        } catch (e) {
+            toast.error("Terjadi kesalahan jaringan.");
+        } finally {
+            setIsAskingAI(false);
+        }
     };
 
     const handleApprovePO = () => {
@@ -92,22 +147,40 @@ export function ProductTable() {
             id_bahan: draftPOProduct.id_bahan,
             nama_bahan: draftPOProduct.nama_bahan,
             qty: parseFloat(draftQty) || 1,
-            harga_satuan: draftPOProduct.harga_satuan,
+            harga_satuan: draftPOProduct.harga_satuan === 0 && parseFloat(draftBudget) > 0
+                ? parseFloat(draftBudget) / Math.max(parseFloat(draftQty) || 1, 1)
+                : draftPOProduct.harga_satuan,
             vendor_id: draftPOProduct.vendor_id,
             vendor_nama: draftPOProduct.vendor_nama,
-            info_pembayaran: draftPOProduct.info_pembayaran || null
+            info_pembayaran: draftPOProduct.info_pembayaran || null,
+            kontak_wa: draftPOProduct.kontak_wa
         });
 
         toast.success("Dimasukkan ke Invoice", { description: `${draftPOProduct.nama_bahan} sejumlah ${draftQty} ${draftPOProduct.satuan}` });
         setDraftPOProduct(null);
     };
 
-    const filteredProducts = products.filter(p =>
-        p.nama_bahan.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.id_bahan.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredProducts = products.filter(p => {
+        const matchesSearch = p.nama_bahan.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            p.id_bahan.toLowerCase().includes(searchTerm.toLowerCase());
 
-    useEffect(() => { setCurrentPage(1); }, [searchTerm]);
+        // Status mapping to logical meanings requested (Habis, Menipis, OK)
+        let matchesStatus = true;
+        if (statusFilter !== "ALL") {
+            if (statusFilter === "HABIS") matchesStatus = p.stock_status === "out";
+            else if (statusFilter === "MENIPIS") matchesStatus = p.stock_status === "low";
+            else if (statusFilter === "OK") matchesStatus = p.stock_status === "sufficient" || p.stock_status === "warning";
+        }
+
+        let matchesVendor = true;
+        if (vendorFilter !== "ALL") {
+            matchesVendor = p.vendor_nama === vendorFilter;
+        }
+
+        return matchesSearch && matchesStatus && matchesVendor;
+    });
+
+    useEffect(() => { setCurrentPage(1); }, [searchTerm, statusFilter, vendorFilter]);
 
     const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -145,6 +218,59 @@ export function ProductTable() {
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input placeholder="Cari bahan..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9 bg-secondary/50 rounded-lg" />
                         </div>
+
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" size="icon" className="h-10 w-10 shrink-0 relative">
+                                    <Filter className="h-4 w-4" />
+                                    {(statusFilter !== "ALL" || vendorFilter !== "ALL") && (
+                                        <span className="absolute -top-1 -right-1 h-3 w-3 bg-lime-500 rounded-full flex items-center justify-center"></span>
+                                    )}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-72" align="end">
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <h4 className="font-medium text-sm leading-none">Filter Inventory</h4>
+                                        <p className="text-sm text-muted-foreground">Sesuaikan tampilan isi tabel.</p>
+                                    </div>
+                                    <hr />
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-semibold">Status Stok</label>
+                                        <Select value={statusFilter} onValueChange={setStatusFilter}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Pilih Status" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="ALL">Semua Status</SelectItem>
+                                                <SelectItem value="OK">OK / Aman</SelectItem>
+                                                <SelectItem value="MENIPIS">Menipis</SelectItem>
+                                                <SelectItem value="HABIS">Habis</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-semibold">Vendor Name</label>
+                                        <Select value={vendorFilter} onValueChange={setVendorFilter}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Pilih Vendor" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="ALL">Semua Vendor</SelectItem>
+                                                {uniqueVendors.map(vendor => (
+                                                    <SelectItem key={vendor} value={vendor}>{vendor}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    {(statusFilter !== "ALL" || vendorFilter !== "ALL") && (
+                                        <Button variant="ghost" size="sm" className="w-full text-xs mt-2" onClick={() => { setStatusFilter("ALL"); setVendorFilter("ALL") }}>
+                                            Reset Filter
+                                        </Button>
+                                    )}
+                                </div>
+                            </PopoverContent>
+                        </Popover>
 
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
@@ -298,16 +424,48 @@ export function ProductTable() {
                                 </div>
 
                                 <div className="grid gap-3">
-                                    <div>
-                                        <label className="text-sm font-semibold block mb-1">Qty Order ({draftPOProduct!.satuan})</label>
-                                        <Input type="number" value={draftQty} onChange={e => setDraftQty(e.target.value)} step="0.01" className="bg-secondary/50 text-lg py-6" autoFocus />
-                                    </div>
-                                    <div className="bg-amber-500/10 border border-amber-500/20 p-3 rounded-lg">
-                                        <label className="text-xs text-amber-600 dark:text-amber-500 font-semibold uppercase tracking-wider block mb-1">Total Biaya (Estimasi)</label>
-                                        <p className="font-mono text-xl text-foreground font-bold">
-                                            Rp {((parseFloat(draftQty) || 0) * (draftPOProduct!.harga_satuan || 0)).toLocaleString('id-ID')}
-                                        </p>
-                                    </div>
+                                    {draftPOProduct!.harga_satuan === 0 ? (
+                                        <>
+                                            <div>
+                                                <label className="text-sm font-semibold block mb-1">Budget Pembelian (Rp)</label>
+                                                <div className="flex gap-2">
+                                                    <Input type="number" value={draftBudget} onChange={e => setDraftBudget(e.target.value)} placeholder="Misal: 150000" className="bg-secondary/50 flex-1" autoFocus />
+                                                    <Button onClick={handleAskAI} disabled={isAskingAI || !draftBudget} variant="default" className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg transition-transform hover:scale-105 active:scale-95 px-6">
+                                                        {isAskingAI ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2 text-yellow-300" />}
+                                                        Tanya AI
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                            {estimatedQtyFromAI !== null && (
+                                                <div className="bg-indigo-500/10 border border-indigo-500/20 p-3 rounded-lg overflow-hidden relative">
+                                                    <div className="absolute top-0 right-0 p-2 opacity-10"><Sparkles className="w-16 h-16" /></div>
+                                                    <label className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold uppercase tracking-wider block mb-1 relative z-10">Estimasi Qty via AI ({draftPOProduct?.satuan})</label>
+                                                    <div className="flex justify-between items-end relative z-10">
+                                                        <p className="font-mono text-2xl text-foreground font-bold">
+                                                            {estimatedQtyFromAI} <span className="text-sm font-normal text-muted-foreground">{draftPOProduct?.satuan}</span>
+                                                        </p>
+                                                        <span className="text-xs text-muted-foreground bg-secondary/50 px-2 py-1 rounded">Harga Dinamis</span>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div>
+                                                <label className="text-sm font-semibold block mb-1">Qty Order ({draftPOProduct!.kemasan_beli})</label>
+                                                <Input type="number" value={draftQty} onChange={e => setDraftQty(e.target.value)} step="0.01" className="bg-secondary/50 text-lg py-6" autoFocus />
+                                                <div className="text-xs text-muted-foreground mt-2">
+                                                    Estimasi didapat: <span className="font-medium text-foreground">{(parseFloat(draftQty) || 0) * draftPOProduct!.isi_kemasan} {draftPOProduct!.satuan}</span>
+                                                </div>
+                                            </div>
+                                            <div className="bg-amber-500/10 border border-amber-500/20 p-3 rounded-lg">
+                                                <label className="text-xs text-amber-600 dark:text-amber-500 font-semibold uppercase tracking-wider block mb-1">Total Biaya (Estimasi)</label>
+                                                <p className="font-mono text-xl text-foreground font-bold">
+                                                    Rp {((parseFloat(draftQty) || 0) * (draftPOProduct!.harga_satuan || 0)).toLocaleString('id-ID')}
+                                                </p>
+                                            </div>
+                                        </>
+                                    )}
                                     {draftPOProduct!.info_pembayaran && (
                                         <div className="bg-muted p-3 rounded-lg mt-2">
                                             <label className="text-xs text-muted-foreground mb-1 block">Info Pembayaran Vendor:</label>

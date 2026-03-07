@@ -46,7 +46,7 @@ export async function POST(req: Request) {
 
         // 2. Insert into Master_Resep
         if (resep && resep.length > 0) {
-            const resepValues = resep.map((r: any, i: number) => [
+            const resepValues = resep.map((r: { bahan_id: string, jumlah_pakai: number, satuan: string }, i: number) => [
                 `rsp_${idMenu}_${i}`,
                 idMenu,
                 r.bahan_id,
@@ -65,10 +65,8 @@ export async function POST(req: Request) {
         }
 
         return NextResponse.json({ success: true, id_menu: idMenu });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("[GSheets API Error]:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: error instanceof Error ? error.message : "Unknown error" }, { status: 500 });
     }
 }
-
-

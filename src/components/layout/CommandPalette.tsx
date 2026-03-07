@@ -5,11 +5,12 @@ import { Command } from "cmdk";
 import { Search, Package, ShoppingCart, Store, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 export function CommandPalette() {
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState("");
-    const [results, setResults] = useState<any[]>([]);
+    const [results, setResults] = useState<{ id?: string, title: string, url?: string, type: string, description?: string }[]>([]);
     const [loading, setLoading] = useState(false);
     const router = useRouter();
 
@@ -104,23 +105,24 @@ export function CommandPalette() {
                                             }
                                         }}
                                         className={cn(
-                                            "relative flex cursor-pointer select-none items-center rounded-sm px-3 py-2.5 text-sm outline-none",
-                                            "aria-selected:bg-accent aria-selected:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
-                                            "hover:bg-accent hover:text-accent-foreground w-full"
+                                            "relative flex select-none w-full p-0 m-0",
+                                            "aria-selected:bg-accent aria-selected:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
                                         )}
                                     >
-                                        <div className="mr-3 p-1.5 bg-secondary rounded-md">
-                                            {result.type === 'product' && <Package className="h-4 w-4 text-cyan-500" />}
-                                            {result.type === 'order' && <ShoppingCart className="h-4 w-4 text-emerald-500" />}
-                                            {result.type === 'store' && <Store className="h-4 w-4 text-violet-500" />}
-                                            {!['product', 'order', 'store'].includes(result.type) && <Search className="h-4 w-4 text-muted-foreground" />}
-                                        </div>
-                                        <div className="flex flex-col">
-                                            <span className="font-medium text-foreground">{result.title}</span>
-                                            {result.description && (
-                                                <span className="text-xs text-muted-foreground line-clamp-1">{result.description}</span>
-                                            )}
-                                        </div>
+                                        <Link href={result.url || "#"} onClick={() => setOpen(false)} className="flex items-center w-full px-3 py-2.5 cursor-pointer hover:bg-gray-800 hover:text-white rounded-sm transition-colors">
+                                            <div className="mr-3 p-1.5 bg-secondary rounded-md text-foreground group-hover:text-white">
+                                                {result.type === 'product' && <Package className="h-4 w-4 text-cyan-500" />}
+                                                {result.type === 'order' && <ShoppingCart className="h-4 w-4 text-emerald-500" />}
+                                                {result.type === 'store' && <Store className="h-4 w-4 text-violet-500" />}
+                                                {!['product', 'order', 'store'].includes(result.type) && <Search className="h-4 w-4 text-muted-foreground" />}
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className="font-medium text-foreground group-hover:text-white">{result.title}</span>
+                                                {result.description && (
+                                                    <span className="text-xs text-muted-foreground group-hover:text-gray-300 line-clamp-1">{result.description}</span>
+                                                )}
+                                            </div>
+                                        </Link>
                                     </Command.Item>
                                 ))}
                             </Command.Group>

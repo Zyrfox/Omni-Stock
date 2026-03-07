@@ -17,16 +17,16 @@ export async function GET() {
 
         // Map and Merge SQLite actual stock state with GSheets metadata
         const enrichedInventory = allStock.map(stock => {
-            const bahanMeta = masterData.bahan.find(b => b.id_bahan === stock.id_bahan);
+            const bahanMeta = masterData.bahan.find(b => b.id_bahan === stock.id_bahan) as Record<string, string | number> | undefined;
 
             return {
                 id: stock.id,
                 bahan_id: stock.id_bahan,
-                nama_bahan: bahanMeta ? bahanMeta.nama_bahan : "Unknown",
+                nama_bahan: bahanMeta ? String(bahanMeta.nama_bahan || "Unknown") : "Unknown",
                 current_stock: stock.current_stock,
-                satuan: bahanMeta ? bahanMeta.satuan_dasar : "pcs",
-                batas_minimum: bahanMeta ? parseFloat(bahanMeta.Minimal_Stock || "0") : 0,
-                vendor_id: bahanMeta ? bahanMeta.id_vendor : null,
+                satuan: bahanMeta ? String(bahanMeta.satuan_dasar || "pcs") : "pcs",
+                batas_minimum: bahanMeta ? parseFloat(String(bahanMeta.Minimal_Stock || "0")) : 0,
+                vendor_id: bahanMeta ? (bahanMeta.id_vendor as string) : null,
                 last_updated: latestBatch.created_at
             };
         });

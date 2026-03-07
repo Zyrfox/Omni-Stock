@@ -7,7 +7,7 @@ import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } f
 
 export function TrafficSource() {
     // Keeping the original name for backward compatibility in imports, but changing rendering context
-    const [movementData, setMovementData] = useState<any[]>([]);
+    const [movementData, setMovementData] = useState<{ date: string, masuk: number, keluar: number, penyesuaian: number }[]>([]);
     const { resolvedTheme } = useTheme();
     const tickColor = resolvedTheme === 'dark' ? '#9CA3AF' : '#4B5563';
 

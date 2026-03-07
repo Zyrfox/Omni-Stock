@@ -1,43 +1,55 @@
 import { KPICards } from "@/components/dashboard/KPICards";
-import { ProfitChart } from "@/components/dashboard/ProfitChart";
-import { OrderSummaryChart } from "@/components/dashboard/OrderSummaryChart";
-import { StockLevel } from "@/components/dashboard/StockLevel";
-import { UpcomingRestock } from "@/components/dashboard/UpcomingRestock";
 import { InvoiceGenerator } from "@/components/dashboard/InvoiceGenerator";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { ProductTable } from "@/components/dashboard/ProductTable";
 import { DropzoneUploader } from "@/components/dashboard/DropzoneUploader";
 import { LastSyncedBadge } from "@/components/ui/LastSyncedBadge";
 import { Suspense } from "react";
+import { TopContributor } from "@/components/dashboard/TopContributor";
+import { AuditPengeluaran } from "@/components/dashboard/AuditPengeluaran";
+import { SmartStockWarning } from "@/components/dashboard/SmartStockWarning";
+import { AIPredictiveRestock } from "@/components/dashboard/AIPredictiveRestock";
 
 export default function Dashboard() {
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 md:gap-6 w-full pb-8">
-      {/* Left/Main Content (Span 8) */}
-      <div className="xl:col-span-8 flex flex-col gap-4 md:gap-6">
-        <DropzoneUploader />
-        <KPICards />
+    <div className="flex flex-col gap-4 md:gap-6 w-full pb-8">
+      {/* Top Banner / Upload Area */}
+      <DropzoneUploader />
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-          <ProfitChart />
-          <OrderSummaryChart />
-        </div>
+      {/* Master KPI Panels */}
+      <KPICards />
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-          <StockLevel />
-          <UpcomingRestock />
-        </div>
-
-        <Suspense fallback={null}>
-          <LastSyncedBadge />
+      {/* The 4 Analytics Pillars (V6.0) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        <Suspense fallback={<div className="h-64 bg-secondary/50 animate-pulse rounded-xl" />}>
+          <TopContributor />
         </Suspense>
-        <ProductTable />
+
+        <Suspense fallback={<div className="h-64 bg-secondary/50 animate-pulse rounded-xl" />}>
+          <AuditPengeluaran />
+        </Suspense>
+
+        <Suspense fallback={<div className="h-64 bg-secondary/50 animate-pulse rounded-xl" />}>
+          <SmartStockWarning />
+        </Suspense>
+
+        <AIPredictiveRestock />
       </div>
 
-      {/* Right/Side Analytics Content (Span 4) */}
-      <div className="xl:col-span-4 flex flex-col gap-4 md:gap-6">
-        <InvoiceGenerator />
-        <RecentActivity />
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 md:gap-6 w-full">
+        {/* Left/Main Content (Span 8) */}
+        <div className="xl:col-span-8 flex flex-col gap-4 md:gap-6">
+          <Suspense fallback={null}>
+            <LastSyncedBadge />
+          </Suspense>
+          <ProductTable />
+        </div>
+
+        {/* Right/Side Analytics Content (Span 4) */}
+        <div className="xl:col-span-4 flex flex-col gap-4 md:gap-6">
+          <InvoiceGenerator />
+          <RecentActivity />
+        </div>
       </div>
     </div>
   );

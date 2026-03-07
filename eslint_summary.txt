@@ -1,0 +1,32 @@
+C:\Easy Going Group\inventory\OMNI_STOCK\inspect_db.js: @typescript-eslint/no-require-imports
+C:\Easy Going Group\inventory\OMNI_STOCK\inspect_xls.js: @typescript-eslint/no-require-imports
+C:\Easy Going Group\inventory\OMNI_STOCK\src\app\api\dashboard\kpi\route.ts: @typescript-eslint/no-unused-vars
+C:\Easy Going Group\inventory\OMNI_STOCK\src\app\api\dashboard\stock-movement\route.ts: @typescript-eslint/no-unused-vars
+C:\Easy Going Group\inventory\OMNI_STOCK\src\app\api\dashboard\traffic-source\route.ts: @typescript-eslint/no-explicit-any
+C:\Easy Going Group\inventory\OMNI_STOCK\src\app\api\inventory\restock-prediction\route.ts: @typescript-eslint/no-unused-vars
+C:\Easy Going Group\inventory\OMNI_STOCK\src\app\api\inventory\smart-stock\route.ts: @typescript-eslint/no-unused-vars
+C:\Easy Going Group\inventory\OMNI_STOCK\src\app\api\sales\auto-email\route.ts: @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
+C:\Easy Going Group\inventory\OMNI_STOCK\src\app\api\search\route.ts: @typescript-eslint/no-unused-vars
+C:\Easy Going Group\inventory\OMNI_STOCK\src\app\api\settings\route.ts: @typescript-eslint/no-unused-vars
+C:\Easy Going Group\inventory\OMNI_STOCK\src\app\login\page.tsx: @next/next/no-img-element
+C:\Easy Going Group\inventory\OMNI_STOCK\src\app\po-logs\page.tsx: @typescript-eslint/no-unused-vars
+C:\Easy Going Group\inventory\OMNI_STOCK\src\app\products\page.tsx: @typescript-eslint/no-unused-vars
+C:\Easy Going Group\inventory\OMNI_STOCK\src\app\report\page.tsx: @typescript-eslint/no-unused-vars
+C:\Easy Going Group\inventory\OMNI_STOCK\src\app\stores\[id]\page.tsx: @typescript-eslint/no-unused-vars
+C:\Easy Going Group\inventory\OMNI_STOCK\src\app\suppliers\page.tsx: @typescript-eslint/no-unused-vars
+C:\Easy Going Group\inventory\OMNI_STOCK\src\components\dashboard\DropzoneUploader.tsx: @typescript-eslint/no-unused-vars
+C:\Easy Going Group\inventory\OMNI_STOCK\src\components\dashboard\InvoiceGenerator.tsx: @typescript-eslint/no-unused-vars
+C:\Easy Going Group\inventory\OMNI_STOCK\src\components\dashboard\OrderSummaryChart.tsx: @typescript-eslint/no-explicit-any
+C:\Easy Going Group\inventory\OMNI_STOCK\src\components\dashboard\ProductTable.tsx: @typescript-eslint/no-unused-vars, react-hooks/set-state-in-effect
+C:\Easy Going Group\inventory\OMNI_STOCK\src\components\dashboard\ProfitChart.tsx: @typescript-eslint/no-explicit-any
+C:\Easy Going Group\inventory\OMNI_STOCK\src\components\dashboard\RecentActivity.tsx: @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
+C:\Easy Going Group\inventory\OMNI_STOCK\src\components\dashboard\StockLevel.tsx: @typescript-eslint/no-explicit-any
+C:\Easy Going Group\inventory\OMNI_STOCK\src\components\dashboard\TrafficSource.tsx: @typescript-eslint/no-explicit-any
+C:\Easy Going Group\inventory\OMNI_STOCK\src\components\dashboard\UserManagementTable.tsx: @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
+C:\Easy Going Group\inventory\OMNI_STOCK\src\components\layout\AppShell.tsx: react-hooks/set-state-in-effect
+C:\Easy Going Group\inventory\OMNI_STOCK\src\components\layout\CommandPalette.tsx: @typescript-eslint/no-explicit-any, react/no-unescaped-entities
+C:\Easy Going Group\inventory\OMNI_STOCK\src\components\layout\Header.tsx: react-hooks/set-state-in-effect, @typescript-eslint/no-explicit-any
+C:\Easy Going Group\inventory\OMNI_STOCK\src\components\layout\Sidebar.tsx: @typescript-eslint/no-unused-vars, @next/next/no-img-element
+C:\Easy Going Group\inventory\OMNI_STOCK\src\components\po-logs\InvoiceActions.tsx: @typescript-eslint/no-unused-vars
+C:\Easy Going Group\inventory\OMNI_STOCK\test-fetch-full.js: @typescript-eslint/no-require-imports
+C:\Easy Going Group\inventory\OMNI_STOCK\test-fetch.js: @typescript-eslint/no-unused-vars, @typescript-eslint/no-require-imports

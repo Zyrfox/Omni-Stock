@@ -11,9 +11,8 @@ export async function POST() {
         } else {
             return NextResponse.json({ success: false, error: result.error }, { status: 500 });
         }
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("[SYNC_API] Error:", error);
-        return NextResponse.json({ success: false, error: error.message || 'Failed to sync' }, { status: 500 });
+        return NextResponse.json({ success: false, error: error instanceof Error ? error.message : 'Failed to sync' }, { status: 500 });
     }
 }
-

@@ -26,7 +26,7 @@ export function UploadDetailsModal({ batchId, details }: { batchId: string, deta
             </Button>
 
             <Dialog open={open} onOpenChange={setOpen}>
-                <DialogContent className="max-w-md max-h-[80vh] flex flex-col">
+                <DialogContent className="max-w-md max-h-[75vh] overflow-y-auto flex flex-col">
                     <DialogHeader>
                         <DialogTitle>Detail Upload Batch</DialogTitle>
                         <div className="text-xs text-muted-foreground font-mono mt-1 blur-[0.5px] select-all">{batchId}</div>

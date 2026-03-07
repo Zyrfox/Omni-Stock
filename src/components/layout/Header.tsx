@@ -2,12 +2,11 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Search, Sun, Moon, Bell, Menu } from "lucide-react";
+import { Search, Sun, Moon, Bell, Menu, LogOut } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useEffect, useState } from "react";
-
+import { useSession, signOut } from "next-auth/react";
 import { CommandPalette } from "./CommandPalette";
 
 interface HeaderProps {
@@ -20,6 +19,7 @@ export function Header({ onMenuClick, isMobile }: HeaderProps) {
     const { theme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
     const [showNotifications, setShowNotifications] = useState(false);
+    const { data: session } = useSession();
 
     useEffect(() => {
         setMounted(true);
@@ -36,21 +36,39 @@ export function Header({ onMenuClick, isMobile }: HeaderProps) {
         pathname.split("/").pop()?.replace("-", " ");
     const formattedTitle = title ? title.charAt(0).toUpperCase() + title.slice(1) : "";
 
+    // Derive display data from session
+    const username = (session?.user as { username?: string })?.username ?? "User";
+    const email = session?.user?.email ?? "";
+    const role = (session?.user as { role?: string })?.role ?? "";
+    // Avatar: first 2 uppercase chars of username
+    const avatarInitials = username.slice(0, 2).toUpperCase();
+
     // Mock Notifications data
-    const notifications = [
+    const [notifications, setNotifications] = useState([
         { id: 1, title: 'Draft PO Dibuat', time: '5m ago', read: false, href: '/po-logs' },
         { id: 2, title: 'Stok Maizena Habis!', time: '1h ago', read: false, href: '/products' },
         { id: 3, title: 'Upload Berhasil', time: '2h ago', read: true, href: '/' }
-    ];
+    ]);
+
     const unreadCount = notifications.filter(n => !n.read).length;
 
-    // Helper: resolve notification route from title
+    const markAllAsRead = () => {
+        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    };
+
     function getNotifHref(n: typeof notifications[0]) {
         if (n.href) return n.href;
         if (n.title.includes('Draft PO')) return '/po-logs';
         if (n.title.includes('Stok') && n.title.includes('Habis')) return '/products';
         return '/';
     }
+
+    // Role badge colors
+    const roleColor: Record<string, string> = {
+        MANAGER: "bg-violet-500/15 text-violet-600 dark:text-violet-400",
+        SPV: "bg-blue-500/15 text-blue-600 dark:text-blue-400",
+        STAFF: "bg-slate-500/15 text-slate-600 dark:text-slate-400",
+    };
 
     return (
         <>
@@ -111,14 +129,17 @@ export function Header({ onMenuClick, isMobile }: HeaderProps) {
                                 <div className="absolute right-0 mt-2 w-72 bg-card border border-border shadow-lg rounded-xl z-50 overflow-hidden animate-in slide-in-from-top-2">
                                     <div className="px-4 py-3 border-b border-border bg-muted/50 flex justify-between items-center">
                                         <span className="font-semibold text-sm text-foreground">Notifications</span>
-                                        <span className="text-xs text-lime-700 dark:text-lime-400 cursor-pointer hover:underline">Mark all as read</span>
+                                        <span className="text-xs text-lime-700 dark:text-lime-400 cursor-pointer hover:underline" onClick={markAllAsRead}>Mark all as read</span>
                                     </div>
                                     <div className="max-h-80 overflow-y-auto">
                                         {notifications.map(n => (
                                             <Link
                                                 key={n.id}
                                                 href={getNotifHref(n)}
-                                                onClick={() => setShowNotifications(false)}
+                                                onClick={() => {
+                                                    setShowNotifications(false);
+                                                    setNotifications(prev => prev.map(notif => notif.id === n.id ? { ...notif, read: true } : notif));
+                                                }}
                                                 className={`block p-4 border-b border-border last:border-0 hover:bg-muted/50 transition-colors cursor-pointer ${!n.read ? 'bg-primary/5' : ''}`}
                                             >
                                                 <div className="flex justify-between items-start gap-2">
@@ -136,14 +157,31 @@ export function Header({ onMenuClick, isMobile }: HeaderProps) {
                         )}
                     </div>
 
+                    {/* User Avatar + Info + Logout */}
                     <div className="flex items-center gap-2 pl-2 md:pl-4 border-l border-border">
-                        <div className="h-8 w-8 md:h-9 md:w-9 rounded-full bg-primary flex items-center justify-center font-bold text-primary-foreground text-xs md:text-sm">
-                            SA
+                        <div className="h-8 w-8 md:h-9 md:w-9 rounded-full bg-primary flex items-center justify-center font-bold text-primary-foreground text-xs md:text-sm shrink-0">
+                            {avatarInitials}
                         </div>
                         <div className="hidden md:flex flex-col text-sm">
-                            <span className="font-semibold leading-none">Super Admin</span>
-                            <span className="text-[10px] text-muted-foreground mt-1">super@omni.com</span>
+                            <div className="flex items-center gap-1.5 leading-none">
+                                <span className="font-semibold">{username}</span>
+                                {role && (
+                                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${roleColor[role] ?? roleColor.STAFF}`}>
+                                        {role}
+                                    </span>
+                                )}
+                            </div>
+                            <span className="text-[10px] text-muted-foreground mt-0.5 truncate max-w-[140px]">{email}</span>
                         </div>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                            onClick={() => signOut({ callbackUrl: "/login" })}
+                            title="Logout"
+                        >
+                            <LogOut className="h-4 w-4" />
+                        </Button>
                     </div>
                 </div>
             </header>

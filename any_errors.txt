@@ -1,0 +1,10 @@
+C:\Easy Going Group\inventory\OMNI_STOCK\src\app\api\dashboard\traffic-source\route.ts: 24
+C:\Easy Going Group\inventory\OMNI_STOCK\src\app\api\sales\auto-email\route.ts: 44
+C:\Easy Going Group\inventory\OMNI_STOCK\src\components\dashboard\OrderSummaryChart.tsx: 8, 16
+C:\Easy Going Group\inventory\OMNI_STOCK\src\components\dashboard\ProfitChart.tsx: 16, 26, 27, 65
+C:\Easy Going Group\inventory\OMNI_STOCK\src\components\dashboard\RecentActivity.tsx: 7, 16
+C:\Easy Going Group\inventory\OMNI_STOCK\src\components\dashboard\StockLevel.tsx: 8, 18, 27, 27
+C:\Easy Going Group\inventory\OMNI_STOCK\src\components\dashboard\TrafficSource.tsx: 10
+C:\Easy Going Group\inventory\OMNI_STOCK\src\components\dashboard\UserManagementTable.tsx: 36
+C:\Easy Going Group\inventory\OMNI_STOCK\src\components\layout\CommandPalette.tsx: 12
+C:\Easy Going Group\inventory\OMNI_STOCK\src\components\layout\Header.tsx: 40, 42

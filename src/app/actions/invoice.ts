@@ -3,9 +3,14 @@
 import { db } from "@/db";
 import { invoices, invoiceItems } from "@/db/schema";
 import { POItem } from "@/lib/store/usePOBuilder";
+import { auth } from "@/auth";
 
 export async function saveInvoiceDrafts(groupedPOs: Record<string, POItem[]>) {
     console.log("[INVOICE_ACTION] Saving Invoices to Database...");
+
+    // Cepu Logic: Server-Side Stamp
+    const session = await auth();
+    const createdBy = (session?.user as { username?: string })?.username || "System";
 
     try {
         const vendorNames = Object.keys(groupedPOs);
@@ -23,7 +28,8 @@ export async function saveInvoiceDrafts(groupedPOs: Record<string, POItem[]>) {
                 vendor_nama: vendor,
                 total_items: totalItems,
                 total_biaya: totalBiaya,
-                status: "UNPAID"
+                status: "UNPAID",
+                created_by: createdBy // PRD V5.5 Audit Trail
             });
 
             // Insert Invoice Items
@@ -40,8 +46,8 @@ export async function saveInvoiceDrafts(groupedPOs: Record<string, POItem[]>) {
         }
 
         return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("[INVOICE_ACTION] Error saving invoices:", error);
-        return { success: false, error: error.message };
+        return { success: false, error: error instanceof Error ? error.message : "Unknown error occurred" };
     }
 }

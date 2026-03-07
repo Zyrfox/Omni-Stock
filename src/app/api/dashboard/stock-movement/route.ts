@@ -94,9 +94,8 @@ export async function GET() {
             .slice(-7);
 
         return NextResponse.json(data);
-    } catch (error) {
+    } catch (error: unknown) {
         console.error("Error fetching stock movement:", error);
         return NextResponse.json({ error: 'Failed to fetch stock movement data' }, { status: 500 });
     }
 }
-

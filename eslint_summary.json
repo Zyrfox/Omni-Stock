@@ -1,0 +1,310 @@
+[
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\inspect_db.js",
+    "errors": [
+      "@typescript-eslint/no-require-imports:2"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\inspect_xls.js",
+    "errors": [
+      "@typescript-eslint/no-require-imports:1",
+      "@typescript-eslint/no-require-imports:2"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\src\\app\\actions\\invoice.ts",
+    "errors": [
+      "@typescript-eslint/no-explicit-any:13"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\src\\app\\actions\\po.ts",
+    "errors": [
+      "@typescript-eslint/no-explicit-any:12"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\src\\app\\api\\dashboard\\kpi\\route.ts",
+    "errors": [
+      "@typescript-eslint/no-unused-vars:4",
+      "@typescript-eslint/no-unused-vars:4",
+      "@typescript-eslint/no-unused-vars:6",
+      "@typescript-eslint/no-unused-vars:6",
+      "@typescript-eslint/no-unused-vars:6",
+      "@typescript-eslint/no-unused-vars:6"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\src\\app\\api\\dashboard\\stock-movement\\route.ts",
+    "errors": [
+      "@typescript-eslint/no-unused-vars:5",
+      "@typescript-eslint/no-unused-vars:93"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\src\\app\\api\\dashboard\\traffic-source\\route.ts",
+    "errors": [
+      "@typescript-eslint/no-explicit-any:24"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\src\\app\\api\\inventory\\restock-prediction\\route.ts",
+    "errors": [
+      "null:193"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\src\\app\\api\\inventory\\smart-stock\\route.ts",
+    "errors": [
+      "@typescript-eslint/no-unused-vars:7"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\src\\app\\api\\sales\\auto-email\\route.ts",
+    "errors": [
+      "@typescript-eslint/no-unused-vars:9",
+      "@typescript-eslint/no-unused-vars:27",
+      "@typescript-eslint/no-explicit-any:44",
+      "@typescript-eslint/no-explicit-any:58",
+      "@typescript-eslint/no-explicit-any:66"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\src\\app\\api\\sales\\upload\\route.ts",
+    "errors": [
+      "@typescript-eslint/no-explicit-any:37",
+      "@typescript-eslint/no-explicit-any:41"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\src\\app\\api\\search\\route.ts",
+    "errors": [
+      "@typescript-eslint/no-unused-vars:5",
+      "@typescript-eslint/no-unused-vars:72"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\src\\app\\api\\settings\\route.ts",
+    "errors": [
+      "@typescript-eslint/no-unused-vars:5"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\src\\app\\api\\sync\\trigger\\route.ts",
+    "errors": [
+      "null:25"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\src\\app\\login\\page.tsx",
+    "errors": [
+      "@next/next/no-img-element:135"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\src\\app\\po-logs\\page.tsx",
+    "errors": [
+      "@typescript-eslint/no-unused-vars:6"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\src\\app\\products\\page.tsx",
+    "errors": [
+      "@typescript-eslint/no-unused-vars:7"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\src\\app\\report\\page.tsx",
+    "errors": [
+      "@typescript-eslint/no-unused-vars:2",
+      "@typescript-eslint/no-unused-vars:5",
+      "@typescript-eslint/no-unused-vars:5",
+      "@typescript-eslint/no-unused-vars:5",
+      "@typescript-eslint/no-unused-vars:5",
+      "@typescript-eslint/no-unused-vars:5",
+      "@typescript-eslint/no-unused-vars:6",
+      "@typescript-eslint/no-unused-vars:19",
+      "@typescript-eslint/no-unused-vars:20"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\src\\app\\stores\\[id]\\page.tsx",
+    "errors": [
+      "@typescript-eslint/no-unused-vars:6",
+      "@typescript-eslint/no-unused-vars:10",
+      "@typescript-eslint/no-explicit-any:25",
+      "@typescript-eslint/no-explicit-any:26"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\src\\app\\suppliers\\page.tsx",
+    "errors": [
+      "@typescript-eslint/no-unused-vars:6"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\src\\app\\users\\page.tsx",
+    "errors": [
+      "@typescript-eslint/no-explicit-any:9",
+      "@typescript-eslint/no-explicit-any:22"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\src\\auth.ts",
+    "errors": [
+      "@typescript-eslint/no-explicit-any:52",
+      "@typescript-eslint/no-explicit-any:53",
+      "@typescript-eslint/no-explicit-any:60",
+      "@typescript-eslint/no-explicit-any:61",
+      "@typescript-eslint/no-explicit-any:62"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\src\\components\\dashboard\\DropzoneUploader.tsx",
+    "errors": [
+      "@typescript-eslint/no-unused-vars:121"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\src\\components\\dashboard\\InvoiceGenerator.tsx",
+    "errors": [
+      "@typescript-eslint/no-unused-vars:8",
+      "@typescript-eslint/no-explicit-any:20",
+      "@typescript-eslint/no-explicit-any:73",
+      "react/no-unescaped-entities:88",
+      "react/no-unescaped-entities:88"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\src\\components\\dashboard\\OrderSummaryChart.tsx",
+    "errors": [
+      "@typescript-eslint/no-explicit-any:8",
+      "@typescript-eslint/no-explicit-any:16"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\src\\components\\dashboard\\ProductTable.tsx",
+    "errors": [
+      "@typescript-eslint/no-unused-vars:4",
+      "@typescript-eslint/no-unused-vars:4",
+      "@typescript-eslint/no-unused-vars:5",
+      "react-hooks/set-state-in-effect:110"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\src\\components\\dashboard\\ProfitChart.tsx",
+    "errors": [
+      "@typescript-eslint/no-explicit-any:16",
+      "@typescript-eslint/no-explicit-any:26",
+      "@typescript-eslint/no-explicit-any:27",
+      "@typescript-eslint/no-explicit-any:65"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\src\\components\\dashboard\\RecentActivity.tsx",
+    "errors": [
+      "@typescript-eslint/no-explicit-any:7",
+      "@typescript-eslint/no-explicit-any:16",
+      "@typescript-eslint/no-unused-vars:16"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\src\\components\\dashboard\\StockLevel.tsx",
+    "errors": [
+      "@typescript-eslint/no-explicit-any:8",
+      "@typescript-eslint/no-explicit-any:18",
+      "@typescript-eslint/no-explicit-any:27",
+      "@typescript-eslint/no-explicit-any:27"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\src\\components\\dashboard\\TrafficSource.tsx",
+    "errors": [
+      "@typescript-eslint/no-explicit-any:10"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\src\\components\\dashboard\\UserManagementTable.tsx",
+    "errors": [
+      "@typescript-eslint/no-explicit-any:36",
+      "@typescript-eslint/no-unused-vars:92",
+      "@typescript-eslint/no-unused-vars:112"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\src\\components\\layout\\AppShell.tsx",
+    "errors": [
+      "react-hooks/set-state-in-effect:30"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\src\\components\\layout\\CommandPalette.tsx",
+    "errors": [
+      "@typescript-eslint/no-explicit-any:12",
+      "react/no-unescaped-entities:90",
+      "react/no-unescaped-entities:90"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\src\\components\\layout\\Header.tsx",
+    "errors": [
+      "react-hooks/set-state-in-effect:25",
+      "@typescript-eslint/no-explicit-any:40",
+      "@typescript-eslint/no-explicit-any:42"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\src\\components\\layout\\Sidebar.tsx",
+    "errors": [
+      "@typescript-eslint/no-unused-vars:22",
+      "@next/next/no-img-element:71"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\src\\components\\po-logs\\InvoiceActions.tsx",
+    "errors": [
+      "@typescript-eslint/no-unused-vars:9",
+      "@typescript-eslint/no-explicit-any:9"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\src\\components\\products\\ProductModal.tsx",
+    "errors": [
+      "@typescript-eslint/no-explicit-any:99",
+      "@typescript-eslint/no-explicit-any:151"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\src\\db\\schema.ts",
+    "errors": [
+      "@typescript-eslint/no-unused-vars:2"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\src\\lib\\gsheets.ts",
+    "errors": [
+      "@typescript-eslint/no-explicit-any:5",
+      "@typescript-eslint/no-explicit-any:6",
+      "@typescript-eslint/no-explicit-any:7",
+      "@typescript-eslint/no-explicit-any:35"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\test-fetch-full.js",
+    "errors": [
+      "@typescript-eslint/no-require-imports:1",
+      "@typescript-eslint/no-require-imports:2",
+      "@typescript-eslint/no-require-imports:3"
+    ]
+  },
+  {
+    "file": "C:\\Easy Going Group\\inventory\\OMNI_STOCK\\test-fetch.js",
+    "errors": [
+      "@typescript-eslint/no-unused-vars:1",
+      "@typescript-eslint/no-require-imports:1",
+      "@typescript-eslint/no-require-imports:2",
+      "@typescript-eslint/no-require-imports:3"
+    ]
+  }
+]

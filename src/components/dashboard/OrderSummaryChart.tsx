@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 export function OrderSummaryChart() {
-    const [data, setData] = useState<any[]>([]);
+    const [data, setData] = useState<{ name: string, orders: number }[]>([]);
 
     useEffect(() => {
         async function fetchOrderSummary() {
@@ -13,7 +13,7 @@ export function OrderSummaryChart() {
                 const res = await fetch("/api/dashboard/order-summary?days=7");
                 if (res.ok) {
                     const rawData = await res.json();
-                    const formatted = rawData.map((d: any) => ({
+                    const formatted = rawData.map((d: { date: string, total_orders: number }) => ({
                         name: d.date.split('-').slice(1).join('/'), // Convert YYYY-MM-DD to MM/DD
                         orders: d.total_orders
                     }));

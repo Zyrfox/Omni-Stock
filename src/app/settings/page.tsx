@@ -20,8 +20,8 @@ export default function SettingsPage() {
             } else {
                 toast.error("Sync Failed", { description: result.error || "Unknown error occurred" });
             }
-        } catch (err: any) {
-            toast.error("Sync Error", { description: err.message || "Gagal menghubungi server untuk sinkronisasi." });
+        } catch (err: unknown) {
+            toast.error("Sync Error", { description: err instanceof Error ? err.message : "Gagal menghubungi server untuk sinkronisasi." });
         } finally {
             setIsSyncing(false);
         }

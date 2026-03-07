@@ -21,7 +21,7 @@ export async function GET() {
             .execute();
 
         // Reconstruct data into the array of sparkline-friendly values per source
-        const grouped: Record<string, any[]> = {};
+        const grouped: Record<string, { value: number }[]> = {};
         const totals: Record<string, number> = {};
 
         for (const row of srcAggregation) {
@@ -30,8 +30,8 @@ export async function GET() {
                 grouped[src] = [];
                 totals[src] = 0;
             }
-            grouped[src].push({ value: row.total_orders });
-            totals[src] += Number(row.total_orders);
+            grouped[src].push({ value: Number(row.total_orders) || 0 });
+            totals[src] += Number(row.total_orders) || 0;
         }
 
         const trafficSources = Object.keys(grouped).map(source => {
@@ -57,9 +57,8 @@ export async function GET() {
 
         return NextResponse.json(trafficSources);
 
-    } catch (error) {
+    } catch (error: unknown) {
         console.error("[TRAFFIC_API] Error:", error);
         return NextResponse.json({ error: 'Failed' }, { status: 500 });
     }
 }
-

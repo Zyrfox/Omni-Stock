@@ -19,7 +19,8 @@ import {
     Menu,
     ChevronLeft,
     ClipboardList,
-    X
+    X,
+    Users2
 } from "lucide-react";
 
 interface SidebarProps {
@@ -51,6 +52,7 @@ const groups = [
     {
         label: "SETTINGS",
         items: [
+            { name: "Users", href: "/users", icon: Users2 },
             { name: "Settings", href: "/settings", icon: Settings },
             { name: "Help", href: "/help", icon: CircleHelp },
             { name: "Logout", href: "/logout", icon: LogOut, textClass: "text-destructive font-semibold", iconClass: "text-destructive" },

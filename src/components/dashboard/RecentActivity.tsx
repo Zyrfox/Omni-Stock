@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function RecentActivity() {
-    const [activities, setActivities] = useState<any[]>([]);
+    const [activities, setActivities] = useState<{ user: string, action: string, time: string, avatar: string, color: string }[]>([]);
 
     useEffect(() => {
         async function fetchActivity() {
@@ -13,7 +13,7 @@ export function RecentActivity() {
                 if (res.ok) {
                     const data = await res.json();
 
-                    const formatted = data.map((item: any, idx: number) => {
+                    const formatted = data.map((item: { timestamp: string, user: string, action: string }) => {
                         const date = new Date(item.timestamp);
                         const isSystem = item.user.toLowerCase() === 'system';
 

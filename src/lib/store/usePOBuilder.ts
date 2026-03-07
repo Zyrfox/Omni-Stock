@@ -8,6 +8,7 @@ export interface POItem {
     vendor_id: string;
     vendor_nama: string;
     info_pembayaran: string | null;
+    kontak_wa?: string;
 }
 
 interface POStore {

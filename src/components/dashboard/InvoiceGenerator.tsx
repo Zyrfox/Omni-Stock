@@ -10,11 +10,14 @@ import { toast } from "sonner";
 import { usePOBuilder, POItem } from "@/lib/store/usePOBuilder";
 import { saveInvoiceDrafts } from "@/app/actions/invoice";
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 
 export function InvoiceGenerator() {
     const { approvedPOs, clearPOs, removePO } = usePOBuilder();
     const printRef = useRef<HTMLDivElement>(null);
     const [isSaving, setIsSaving] = useState(false);
+    const { data: session } = useSession();
+    const username = (session?.user as { username?: string })?.username || "Staf OMNI";
 
     const handlePrint = useReactToPrint({
         contentRef: printRef,
@@ -50,8 +53,18 @@ export function InvoiceGenerator() {
             text += `\n\nInfo Pembayaran Vendor:\n${paymentInfo}`;
         }
 
-        navigator.clipboard.writeText(text);
-        toast.success("Teks disalin ke Clipboard!", { description: `Format WA untuk vendor ${vendorName} siap dikirim.` });
+        // PRD V5.5: Audit Trail Stamp
+        text += `\n\nDisiapkan oleh: ${username}`;
+
+        const phone = items[0]?.kontak_wa;
+        if (phone) {
+            let waPhone = phone.replace(/^0/, '62');
+            if (!waPhone.startsWith('62')) waPhone = '62' + waPhone;
+            window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(text)}`, '_blank');
+        } else {
+            navigator.clipboard.writeText(text);
+            toast.success("Teks disalin ke Clipboard!", { description: `Nomor WA vendor tidak ditemukan. Format disalin manual.` });
+        }
     };
 
     const handleExportAndSave = async () => {
@@ -64,8 +77,8 @@ export function InvoiceGenerator() {
             } else {
                 toast.error("Gagal menyimpan Invoice ke Database", { description: res.error });
             }
-        } catch (err: any) {
-            toast.error("Error Sistem", { description: err.message });
+        } catch (err: unknown) {
+            toast.error("Error Sistem", { description: err instanceof Error ? err.message : "Terjadi kesalahan" });
         } finally {
             setIsSaving(false);
         }
@@ -79,22 +92,44 @@ export function InvoiceGenerator() {
                 </div>
                 <h3 className="text-lg font-semibold text-muted-foreground">Keranjang PO Kosong</h3>
                 <p className="text-sm text-muted-foreground mt-2 max-w-[250px]">
-                    Klik tombol "Rancang PO" pada tabel inventory untuk mulai menyusun PO dan Invoice.
+                    Klik tombol &quot;Rancang PO&quot; pada tabel inventory untuk mulai menyusun PO dan Invoice.
                 </p>
             </Card>
         );
     }
 
     return (
-        <Card className="h-full border-white/10 flex flex-col shadow-xl">
+        <Card className="h-full border-white/10 flex flex-col shadow-xl overflow-hidden rounded-t-xl">
             <CardHeader className="bg-lime-500/10 border-b border-lime-500/20 pb-4">
                 <CardTitle className="text-lg flex justify-between items-center text-lime-600 dark:text-lime-400">
                     <span className="flex items-center gap-2"><FileText className="h-5 w-5" /> Draft Invoices</span>
-                    <Badge variant="outline" className="border-lime-500/50 bg-lime-500/10">{approvedPOs.length} Items</Badge>
+                    <div className="flex gap-2">
+                        <Button variant="outline" size="sm" className="h-7 text-xs bg-lime-500/20 text-lime-700 hover:bg-lime-500/30 border-lime-500/30" onClick={() => {
+                            const allText = Object.entries(groupedPOs).map(([vendor, items]) => {
+                                let total = 0;
+                                let text = `*DRAFT PO - ${vendor}*\nTanggal: ${new Date().toLocaleDateString('id-ID')}\n\n`;
+                                items.forEach((item, idx) => {
+                                    const sub = item.qty * (item.harga_satuan || 0);
+                                    total += sub;
+                                    text += `${idx + 1}. ${item.nama_bahan}\n   ${item.qty} x Rp ${(item.harga_satuan || 0).toLocaleString('id-ID')} = Rp ${sub.toLocaleString('id-ID')}\n`;
+                                });
+                                text += `\n*Total Estimasi: Rp ${total.toLocaleString('id-ID')}*`;
+                                const pymt = items.find(i => i.info_pembayaran)?.info_pembayaran;
+                                if (pymt) text += `\n\nInfo Pembayaran Vendor:\n${pymt}`;
+                                text += `\n\nDisiapkan oleh: ${username}`;
+                                return text;
+                            }).join('\n\n---\n\n');
+                            navigator.clipboard.writeText(allText);
+                            toast.success("Semua draft berhasil disalin!");
+                        }}>
+                            <Copy className="h-3 w-3 mr-1" /> Salin Semua
+                        </Button>
+                        <Badge variant="outline" className="border-lime-500/50 bg-lime-500/10">{approvedPOs.length} Items</Badge>
+                    </div>
                 </CardTitle>
             </CardHeader>
 
-            <CardContent className="flex-1 overflow-y-auto p-0" ref={printRef}>
+            <CardContent className="flex-1 overflow-y-auto max-h-[60vh] p-0" ref={printRef}>
                 <div className="p-4 sm:p-6 space-y-6">
                     {/* Header for PDF printing only */}
                     <div className="hidden print:block text-center border-b pb-4 mb-6">
@@ -147,6 +182,15 @@ export function InvoiceGenerator() {
                             </div>
                         );
                     })}
+
+                    {/* Footer for PDF printing only - PRD V5.5 Audit Trail Stamp */}
+                    <div className="hidden print:flex justify-end mt-12 mb-4">
+                        <div className="text-center">
+                            <p className="text-sm mb-16">Disiapkan Oleh,</p>
+                            <p className="text-sm font-bold underline decoration-2 underline-offset-4">{username}</p>
+                            <p className="text-xs text-muted-foreground mt-1">Gudang / Pembelian</p>
+                        </div>
+                    </div>
                 </div>
             </CardContent>
 

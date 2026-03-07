@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 export function StockLevel() {
-    const [stockData, setStockData] = useState<any[]>([]);
+    const [stockData, setStockData] = useState<{ name: string, remaining: number, minStock: number, maxStock: number, satuan: string }[]>([]);
 
     useEffect(() => {
         async function fetchStock() {
@@ -15,7 +15,7 @@ export function StockLevel() {
                     const data = await res.json();
 
                     // Map to expected UI format
-                    const formatted = data.map((item: any) => ({
+                    const formatted = data.map((item: { nama_bahan: string, current_stock: number, batas_minimum: number, satuan: string }) => ({
                         name: item.nama_bahan,
                         remaining: item.current_stock,
                         minStock: item.batas_minimum,
@@ -24,7 +24,7 @@ export function StockLevel() {
                     }));
 
                     // Sort by most critical: remaining / minStock ratio (lowest first)
-                    formatted.sort((a: any, b: any) => (a.remaining / (a.minStock || 1)) - (b.remaining / (b.minStock || 1)));
+                    formatted.sort((a: { remaining: number, minStock: number }, b: { remaining: number, minStock: number }) => (a.remaining / (a.minStock || 1)) - (b.remaining / (b.minStock || 1)));
 
                     // Limit to top 5 lowest
                     setStockData(formatted.slice(0, 5));

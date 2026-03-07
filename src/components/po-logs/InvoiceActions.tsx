@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { FileDown, Eye } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-export function InvoiceActions({ invoiceId, vendorName, items }: { invoiceId: string, vendorName: string, items: any[] }) {
+export function InvoiceActions({ invoiceId, vendorName, items }: { invoiceId: string, vendorName: string, items: { id: string, nama_bahan: string, qty: number, harga_satuan: number }[] }) {
     const [open, setOpen] = useState(false);
 
     // TODO: Implement actual PDF generation for past invoices if needed, or just a dummy alert for now

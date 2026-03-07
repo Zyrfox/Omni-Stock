@@ -2,9 +2,9 @@ import { parse } from "csv-parse/sync";
 
 // In-memory cache
 let masterDataCache: {
-    bahan: any[];
-    menu: any[];
-    resep: any[];
+    bahan: Record<string, unknown>[];
+    menu: Record<string, unknown>[];
+    resep: Record<string, unknown>[];
     lastFetch: number;
 } | null = null;
 
@@ -32,8 +32,8 @@ async function fetchCSV(url: string) {
         }
         const records = parse(csvContent, { columns: true, skip_empty_lines: true });
         // Filter out separator rows (Google Sheets exports a "---" row after headers)
-        return records.filter((r: any) => {
-            const vals = Object.values(r) as string[];
+        return records.filter((r) => {
+            const vals = Object.values(r as Record<string, unknown>) as string[];
             return !vals.every(v => String(v).trim() === '---' || String(v).trim() === '');
         });
     } catch (error) {
@@ -59,9 +59,9 @@ export async function fetchMasterData(forceRefresh = false) {
     ]);
 
     masterDataCache = {
-        bahan,
-        menu,
-        resep,
+        bahan: bahan as Record<string, unknown>[],
+        menu: menu as Record<string, unknown>[],
+        resep: resep as Record<string, unknown>[],
         lastFetch: now
     };
 

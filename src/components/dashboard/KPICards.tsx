@@ -8,10 +8,10 @@ import { motion } from "framer-motion";
 
 export function KPICards() {
     const [stats, setStats] = useState({
-        total_products: 0,
-        available_stocks: 0,
-        low_stocks: 0,
-        out_of_stocks: 0
+        total_products: { value: 0, trend: "0%", isPositive: true },
+        available_stocks: { value: 0, trend: "0%", isPositive: true },
+        low_stocks: { value: 0, trend: "0%", isPositive: true },
+        out_of_stocks: { value: 0, trend: "0%", isPositive: true },
     });
     const [loading, setLoading] = useState(true);
 
@@ -35,36 +35,36 @@ export function KPICards() {
     const kpiData = [
         {
             title: "Total Products",
-            value: loading ? "..." : stats.total_products.toLocaleString(),
-            trend: "+12.5%",
-            isPositive: true,
+            value: loading ? "..." : stats.total_products.value.toLocaleString(),
+            trend: stats.total_products.trend,
+            isPositive: stats.total_products.isPositive,
             icon: Package,
             colorClass: "text-primary",
             bgClass: "bg-primary/10",
         },
         {
             title: "Available Stocks",
-            value: loading ? "..." : stats.available_stocks.toLocaleString(),
-            trend: "+4.2%",
-            isPositive: true,
+            value: loading ? "..." : stats.available_stocks.value.toLocaleString(),
+            trend: stats.available_stocks.trend,
+            isPositive: stats.available_stocks.isPositive,
             icon: CheckCircle2,
             colorClass: "text-emerald-500",
             bgClass: "bg-emerald-500/10",
         },
         {
             title: "Low Stocks",
-            value: loading ? "..." : stats.low_stocks.toLocaleString(),
-            trend: "-1.5%",
-            isPositive: false,
+            value: loading ? "..." : stats.low_stocks.value.toLocaleString(),
+            trend: stats.low_stocks.trend,
+            isPositive: stats.low_stocks.isPositive,
             icon: AlertTriangle,
             colorClass: "text-amber-500",
             bgClass: "bg-amber-500/10",
         },
         {
             title: "Out of Stocks",
-            value: loading ? "..." : stats.out_of_stocks.toLocaleString(),
-            trend: "+2.4%",
-            isPositive: false,
+            value: loading ? "..." : stats.out_of_stocks.value.toLocaleString(),
+            trend: stats.out_of_stocks.trend,
+            isPositive: stats.out_of_stocks.isPositive,
             icon: XCircle,
             colorClass: "text-destructive",
             bgClass: "bg-destructive/10",
@@ -107,7 +107,7 @@ export function KPICards() {
                                     {kpi.isPositive ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
                                     {kpi.trend}
                                 </span>
-                                <span className="text-gray-500">vs last month</span>
+                                <span className="text-gray-500">vs last day</span>
                             </div>
                         </CardContent>
                     </Card>

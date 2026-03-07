@@ -21,7 +21,7 @@ export async function GET() {
 
         // Grouping logic based on master menu category
         for (const sale of allSales) {
-            const menu = masterData.menu.find(m => m.id === sale.id_menu);
+            const menu = masterData.menu.find(m => m.id === sale.id_menu) as Record<string, string> | undefined;
             const category = menu?.kategori?.toLowerCase() || "others"; // Assuming exists in GSheets
 
             if (category.includes('food') || category.includes('makanan')) {
@@ -40,10 +40,8 @@ export async function GET() {
                 { name: "Add-ons", value: addonProfit, color: "#6F767E" }
             ]
         });
-
     } catch (error) {
         console.error("[PROFIT_API] Error fetching Profit data:", error);
         return NextResponse.json({ error: 'Failed' }, { status: 500 });
     }
 }
-

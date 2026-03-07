@@ -26,7 +26,7 @@ export async function GET() {
 
         for (const sale of recentSales) {
             // Find resep entries for this menu
-            const relatedReseps = allResep.filter((r: any) => r.menu_id === sale.id_menu);
+            const relatedReseps = allResep.filter((r: typeof allResep[number]) => r.menu_id === sale.id_menu);
             for (const res of relatedReseps) {
                 const bahanId = res.bahan_id;
                 const usage = res.jumlah_pakai * sale.qty_sold;
@@ -45,7 +45,7 @@ export async function GET() {
         const allStock = latestBatch ? await db.select().from(inventoryLogs).where(eq(inventoryLogs.batch_id, latestBatch.id)) : [];
 
         for (const stock of allStock) {
-            const bahanMeta = allBahan.find((b: any) => b.id === stock.id_bahan);
+            const bahanMeta = allBahan.find((b: typeof allBahan[number]) => b.id === stock.id_bahan);
             if (!bahanMeta) continue;
 
             // Skip consignment items
@@ -95,9 +95,8 @@ export async function GET() {
 
         return NextResponse.json(upcomingRestocks);
 
-    } catch (error) {
+    } catch (error: unknown) {
         console.error("[RESTOCK_API] Error predicting restock:", error);
         return NextResponse.json({ error: 'Failed' }, { status: 500 });
     }
 }
-
